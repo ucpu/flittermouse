@@ -1,0 +1,9 @@
+
+[base]
+mask = 1
+emissive = 1
+
+[flags]
+no-lighting
+no-shadow-cast
+translucency

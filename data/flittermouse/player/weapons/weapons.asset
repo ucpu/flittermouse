@@ -1,0 +1,25 @@
+
+[]
+scheme = mesh
+export_normal = false
+export_uv = false
+export_tangent = false
+laser.obj
+
+[]
+scheme = mesh
+scale = 0.01
+weapons.obj?machinegun_base
+weapons.obj?machinegun_cannon
+weapons.obj?machinegun_bullet
+
+[]
+scheme = pack
+weapons.pack
+
+[]
+scheme = object
+laser.object
+machinegun_base.object
+machinegun_cannon.object
+machinegun_bullet.object

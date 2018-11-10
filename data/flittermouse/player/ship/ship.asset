@@ -1,0 +1,40 @@
+
+[]
+scheme = mesh
+scale = 0.001
+ship.obj?ship
+ship.obj?habitable_prototype_habitable
+ship.obj?nozzleFlame_prototype
+
+[]
+scheme = mesh
+scale = 0.001
+export_uv = false
+export_tangent = false
+ship.obj?eye_prototype_eye
+
+[]
+scheme = texture
+ship.png
+habitable.png
+
+[]
+scheme = texture
+animation_duration = 200000
+target = GL_TEXTURE_2D_ARRAY
+nozzleFlame_$.png
+
+[]
+scheme = collider
+scale = 0.001
+ship.obj?collider
+
+[]
+scheme = pack
+ship.pack
+
+[]
+scheme = object
+ship.object
+habitable.object
+nozzleFlame.object
