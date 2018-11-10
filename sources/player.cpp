@@ -542,8 +542,9 @@ namespace
 				ENGINE_GET_COMPONENT(transform, tl, el);
 				tl.position = tc.position;
 				tl.orientation = tc.orientation;
-				vec3 target = terrainIntersection(makeRay(tl.position, tl.position + tl.orientation * vec3(0, 0, -1)));
-				tl.scale = target.valid() ? target.distance(tl.position) : 0;
+				//vec3 target = terrainIntersection(makeRay(tl.position, tl.position + tl.orientation * vec3(0, 0, -1)));
+				//tl.scale = target.valid() ? target.distance(tl.position) : 0;
+				tl.scale = 100;
 
 				entityClass *es = entities()->get(73 + i * 5);
 				ENGINE_GET_COMPONENT(transform, ts, es);

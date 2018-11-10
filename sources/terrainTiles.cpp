@@ -21,8 +21,8 @@
 
 namespace
 {
-	const real tileLength = 100; // real world size of a tile (in 1 dimension)
-	const real distanceToUnloadTile = 300;
+	const real distanceToLoadTile = tileLength * 3;
+	const real distanceToUnloadTile = tileLength * 5;
 
 	enum class tileStatusEnum
 	{
@@ -36,32 +36,6 @@ namespace
 		Defabricate,
 		Unload1,
 		Unload2,
-	};
-
-	struct tilePosStruct
-	{
-		sint32 x, y, z;
-
-		tilePosStruct() : x(0), y(0), z(0)
-		{}
-
-		bool operator < (const tilePosStruct &other) const
-		{
-			if (z == other.z)
-			{
-				if (y == other.y)
-					return x < other.x;
-				return y < other.y;
-			}
-			return z < other.z;
-		}
-
-		real distanceToPlayer(real tileLength) const
-		{
-			return distance(vec3(x, y, z) * tileLength, playerPosition);
-		}
-
-		operator string () const { return string() + x + " " + y + " " + z; }
 	};
 
 	struct tileStruct
@@ -126,7 +100,7 @@ namespace
 
 	bool engineUpdate()
 	{
-		std::set<tilePosStruct> neededTiles = stopping ? std::set<tilePosStruct>() : findNeededTiles(tileLength, 200);
+		std::set<tilePosStruct> neededTiles = stopping ? std::set<tilePosStruct>() : findNeededTiles(tileLength, distanceToLoadTile);
 		for (tileStruct &t : tiles)
 		{
 			// mark unneeded tiles
@@ -135,35 +109,41 @@ namespace
 			// remove tiles
 			if (t.status == tileStatusEnum::Ready && (t.distanceToPlayer() > distanceToUnloadTile || stopping))
 			{
-				terrainRemoveCollider(t.objectName);
-				t.cpuCollider.clear();
-				t.entity->destroy();
-				t.entity = nullptr;
+				if (t.cpuCollider)
+				{
+					terrainRemoveCollider(t.objectName);
+					t.cpuCollider.clear();
+					t.entity->destroy();
+					t.entity = nullptr;
+				}
 				t.status = tileStatusEnum::Defabricate;
 			}
 			// create entity
 			else if (t.status == tileStatusEnum::Entity)
 			{
-				terrainAddCollider(t.objectName, t.cpuCollider.get(), transform(vec3(t.pos.x, t.pos.y, t.pos.z) * tileLength));
-				{ // set texture names for the mesh
-					uint32 textures[MaxTexturesCountPerMaterial];
-					detail::memset(textures, 0, sizeof(textures));
-					textures[0] = t.albedoName;
-					textures[1] = t.materialName;
-					//textures[2] = t.normalName;
-					t.gpuMesh->setTextures(textures);
-				}
-				{ // set object properties
-					t.gpuObject->setLodLevels(1);
-					t.gpuObject->setLodMeshes(0, 1);
-					t.gpuObject->setMeshName(0, 0, t.meshName);
-				}
-				{ // create the entity
-					t.entity = entities()->createAnonymous();
-					ENGINE_GET_COMPONENT(transform, tr, t.entity);
-					tr.position = vec3(t.pos.x, t.pos.y, 0) * tileLength;
-					ENGINE_GET_COMPONENT(render, r, t.entity);
-					r.object = t.objectName;
+				if (t.cpuCollider)
+				{
+					terrainAddCollider(t.objectName, t.cpuCollider.get(), transform(vec3(t.pos.x, t.pos.y, t.pos.z) * tileLength));
+					{ // set texture names for the mesh
+						//uint32 textures[MaxTexturesCountPerMaterial];
+						//detail::memset(textures, 0, sizeof(textures));
+						//textures[0] = t.albedoName;
+						//textures[1] = t.materialName;
+						////textures[2] = t.normalName;
+						//t.gpuMesh->setTextures(textures);
+					}
+					{ // set object properties
+						t.gpuObject->setLodLevels(1);
+						t.gpuObject->setLodMeshes(0, 1);
+						t.gpuObject->setMeshName(0, 0, t.meshName);
+					}
+					{ // create the entity
+						t.entity = entities()->createAnonymous();
+						ENGINE_GET_COMPONENT(transform, tr, t.entity);
+						tr.position = vec3(t.pos.x, t.pos.y, t.pos.z) * tileLength;
+						ENGINE_GET_COMPONENT(render, r, t.entity);
+						r.object = t.objectName;
+					}
 				}
 				t.status = tileStatusEnum::Ready;
 			}
@@ -252,6 +232,8 @@ namespace
 
 	holder<textureClass> dispatchTexture(holder<pngImageClass> &image)
 	{
+		if (!image)
+			return holder<textureClass>();
 		holder<textureClass> t = newTexture(window());
 		switch (image->channels())
 		{
@@ -271,8 +253,12 @@ namespace
 
 	holder<meshClass> dispatchMesh(std::vector<vertexStruct> &vertices, std::vector<uint32> &indices)
 	{
+		if (vertices.size() == 0)
+			return holder<meshClass>();
 		holder<meshClass> m = newMesh(window());
 		meshHeaderStruct::materialDataStruct material;
+		material.albedoBase = vec4(1, 0, 0, 1);
+		material.specialBase = vec4(0.5, 0.5, 0, 0);
 		material.albedoMult = material.specialMult = vec4(1, 1, 1, 1);
 		m->setBuffers(numeric_cast<uint32>(vertices.size()), sizeof(vertexStruct), vertices.data(), numeric_cast<uint32>(indices.size()), indices.data(), sizeof(material), &material);
 		m->setPrimitiveType(GL_TRIANGLES);
@@ -281,7 +267,7 @@ namespace
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_UV, 2, GL_FLOAT, sizeof(vertexStruct), 24);
 		real l = tileLength * 0.5;
 		m->setBoundingBox(aabb(vec3(-l, -l, -l), vec3(l, l, l)));
-		m->setFlags(meshFlags::DepthTest | meshFlags::DepthWrite | meshFlags::Lighting | meshFlags::Normals | meshFlags::ShadowCast | meshFlags::Uvs);
+		m->setFlags(meshFlags::DepthTest | meshFlags::DepthWrite | meshFlags::Lighting | meshFlags::Normals | meshFlags::ShadowCast | meshFlags::Uvs | meshFlags::TwoSided);
 		std::vector<vertexStruct>().swap(vertices);
 		std::vector<uint32>().swap(indices);
 		return m;
@@ -359,14 +345,30 @@ namespace
 
 	void generateCollider(tileStruct &t)
 	{
+		if (t.cpuMeshVertices.empty())
+			return;
 		t.cpuCollider = newCollider();
-		uint32 trisCount = t.cpuMeshIndices.size() / 3;
-		for (uint32 ti = 0; ti < trisCount; ti++)
+		if (t.cpuMeshIndices.empty())
 		{
-			triangle tr;
-			for (uint32 j = 0; j < 3; j++)
-				tr.vertices[j] = t.cpuMeshVertices[t.cpuMeshIndices[ti * 3 + j]].position;
-			t.cpuCollider->addTriangle(tr);
+			uint32 trisCount = numeric_cast<uint32>(t.cpuMeshVertices.size() / 3);
+			for (uint32 ti = 0; ti < trisCount; ti++)
+			{
+				triangle tr;
+				for (uint32 j = 0; j < 3; j++)
+					tr.vertices[j] = t.cpuMeshVertices[ti * 3 + j].position;
+				t.cpuCollider->addTriangle(tr);
+			}
+		}
+		else
+		{
+			uint32 trisCount = numeric_cast<uint32>(t.cpuMeshIndices.size() / 3);
+			for (uint32 ti = 0; ti < trisCount; ti++)
+			{
+				triangle tr;
+				for (uint32 j = 0; j < 3; j++)
+					tr.vertices[j] = t.cpuMeshVertices[t.cpuMeshIndices[ti * 3 + j]].position;
+				t.cpuCollider->addTriangle(tr);
+			}
 		}
 		t.cpuCollider->rebuild();
 	}
@@ -381,7 +383,7 @@ namespace
 				threadSleep(10000);
 				continue;
 			}
-			terrainGenerate(t->cpuMeshVertices, t->cpuMeshIndices, t->cpuAlbedo, t->cpuMaterial);
+			terrainGenerate(t->pos, t->cpuMeshVertices, t->cpuMeshIndices, t->cpuAlbedo, t->cpuMaterial);
 			generateCollider(*t);
 			t->status = tileStatusEnum::Upload;
 		}

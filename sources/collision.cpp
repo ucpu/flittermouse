@@ -60,6 +60,9 @@ vec3 terrainIntersection(const line &ln)
 
 void terrainAddCollider(uint32 name, colliderClass *c, const transform &tr)
 {
+	CAGE_ASSERT_RUNTIME(tr.valid());
+	CAGE_ASSERT_RUNTIME(c);
+	CAGE_ASSERT_RUNTIME(c->box().valid());
 	collisionData->update(name, c, tr);
 	collisionData->rebuild();
 }

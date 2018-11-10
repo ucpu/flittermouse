@@ -10,6 +10,7 @@ add_subdirectory(externals/cage)
 
 file(GLOB_RECURSE flittermouse-sources "sources/*")
 add_executable(flittermouse ${flittermouse-sources})
+target_include_directories(flittermouse PRIVATE "externals/dualmc/include")
 target_link_libraries(flittermouse cage-client)
 cage_ide_category(flittermouse flittermouse)
 cage_ide_sort_files(flittermouse)
