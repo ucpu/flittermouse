@@ -6,7 +6,7 @@
 
 #include "common.h"
 
-const real tileLength = 20; // real world size of a tile (in 1 dimension)
+const real tileLength = 10; // real world size of a tile (in 1 dimension)
 
 struct tilePosStruct
 {

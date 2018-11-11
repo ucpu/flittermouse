@@ -69,7 +69,7 @@ namespace
 		}
 	};
 
-	std::array<tileStruct, 256> tiles;
+	std::array<tileStruct, 2048> tiles;
 	bool stopping;
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -125,12 +125,12 @@ namespace
 				{
 					terrainAddCollider(t.objectName, t.cpuCollider.get(), transform(vec3(t.pos.x, t.pos.y, t.pos.z) * tileLength));
 					{ // set texture names for the mesh
-						//uint32 textures[MaxTexturesCountPerMaterial];
-						//detail::memset(textures, 0, sizeof(textures));
-						//textures[0] = t.albedoName;
-						//textures[1] = t.materialName;
-						////textures[2] = t.normalName;
-						//t.gpuMesh->setTextures(textures);
+						uint32 textures[MaxTexturesCountPerMaterial];
+						detail::memset(textures, 0, sizeof(textures));
+						textures[0] = t.albedoName;
+						textures[1] = t.materialName;
+						//textures[2] = t.normalName;
+						t.gpuMesh->setTextures(textures);
 					}
 					{ // set object properties
 						t.gpuObject->setLodLevels(1);
@@ -244,6 +244,7 @@ namespace
 			t->image2d(image->width(), image->height(), GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, image->bufferData());
 			break;
 		}
+		//t->filters(GL_NEAREST, GL_NEAREST, 0);
 		t->filters(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, 100);
 		t->wraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 		t->generateMipmaps();
@@ -257,8 +258,8 @@ namespace
 			return holder<meshClass>();
 		holder<meshClass> m = newMesh(window());
 		meshHeaderStruct::materialDataStruct material;
-		material.albedoBase = vec4(1, 0, 0, 1);
-		material.specialBase = vec4(0.5, 0.5, 0, 0);
+		//material.albedoBase = vec4(1, 0, 0, 1);
+		//material.specialBase = vec4(0.5, 0.5, 0, 0);
 		material.albedoMult = material.specialMult = vec4(1, 1, 1, 1);
 		m->setBuffers(numeric_cast<uint32>(vertices.size()), sizeof(vertexStruct), vertices.data(), numeric_cast<uint32>(indices.size()), indices.data(), sizeof(material), &material);
 		m->setPrimitiveType(GL_TRIANGLES);
