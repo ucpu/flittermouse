@@ -271,14 +271,14 @@ namespace
 
 	bool mouseRelease(mouseButtonsFlags buttons, modifiersFlags, const pointStruct &)
 	{
-		centerMouse();
-		setButtons(buttons, true);
+		setButtons(buttons, false);
 		return false;
 	}
 
 	bool mousePress(mouseButtonsFlags buttons, modifiersFlags, const pointStruct &)
 	{
-		setButtons(buttons, false);
+		centerMouse();
+		setButtons(buttons, true);
 		return false;
 	}
 
@@ -360,66 +360,6 @@ namespace
 		return false;
 	}
 
-	vec3 processKeys()
-	{
-		{ // numeric keys
-			vec3 r;
-			if (keysPressedNumpad[8]) // pitch up
-				r[0] += 1;
-			if (keysPressedNumpad[2]) // pitch down
-				r[0] -= 1;
-			if (keysPressedNumpad[4]) // yaw left
-				r[1] += 1;
-			if (keysPressedNumpad[6]) // yaw right
-				r[1] -= 1;
-			if (keysPressedNumpad[7]) // roll left
-				r[2] += 1;
-			if (keysPressedNumpad[9]) // roll right
-				r[2] -= 1;
-			if (r != vec3())
-			{
-				r = normalize(r);
-				bool keysPressedWeaponsAny = false;
-				for (uint32 i = 0; i < 3; i++)
-					keysPressedWeaponsAny = keysPressedWeaponsAny || keysPressedWeapons[i];
-				if (keysPressedWeaponsAny)
-				{ // weapons
-					quat q = quat(degs(r[0]), degs(r[1]), degs());
-					for (uint32 i = 0; i < 3; i++)
-					{
-						if (keysPressedWeapons[i])
-							weaponDirectionTargets[i] = q * weaponDirectionTargets[i];
-					}
-				}
-				else
-				{ // camera
-					r *= 3;
-					targetCameraOrientationShip = targetCameraOrientationShip * quat(degs(r[0]), degs(r[1]), degs(r[2]));
-					nozzlesTurning(r[0], r[1], r[2]);
-				}
-			}
-		}
-		vec3 m;
-		if (keysPressedArrows[0]) // w
-			m[2] -= 1;
-		if (keysPressedArrows[1]) // s
-			m[2] += 1;
-		if (keysPressedArrows[2]) // a
-			m[0] -= 1;
-		if (keysPressedArrows[3]) // d
-			m[0] += 1;
-		if (keysPressedArrows[4]) // e
-			m[1] += 1;
-		if (keysPressedArrows[5]) // q
-			m[1] -= 1;
-		if (m != vec3())
-			m = normalize(m);
-		nozzlesMoving(m[0], m[1], m[2], keysPressedSpace ? 1 : 0);
-		if (keysPressedSpace)
-			m[2] -= 6;
-		return m;
-	}
-
 	void updateNozzleEntities()
 	{
 		entityManagerClass *ents = entities();
@@ -448,13 +388,6 @@ namespace
 		pitch = quat(normPitch, degs(), degs());
 	}
 
-	real quatDiff(const quat &a, const quat &b)
-	{
-		quat q = b - a;
-		vec4 v = *(vec4*)&q;
-		return v.squaredLength();
-	}
-
 	void engineUpdate()
 	{
 		uint64 time = currentControlTime();
@@ -465,25 +398,60 @@ namespace
 		for (uint32 i = 0; i < 27; i++)
 			nozzles[i] = nozzles[i] * 0.7;
 
-		{ // update player position and orientation
-			vec3 m = processKeys();
-			{ // turning
-				rads turning = degs(2);
-				if (quatDiff(rotate(t.orientation, targetCameraOrientationShip, turning * 1.5), targetCameraOrientationShip) < real::epsilon)
-					t.orientation = slerp(t.orientation, targetCameraOrientationShip, 0.5);
-				else
-					t.orientation = rotate(t.orientation, targetCameraOrientationShip, turning);
+		{ // ship orientation - numeric keys
+			vec3 r;
+			if (keysPressedNumpad[8]) // pitch up
+				r[0] += 1;
+			if (keysPressedNumpad[2]) // pitch down
+				r[0] -= 1;
+			if (keysPressedNumpad[4]) // yaw left
+				r[1] += 1;
+			if (keysPressedNumpad[6]) // yaw right
+				r[1] -= 1;
+			if (keysPressedNumpad[7]) // roll left
+				r[2] += 1;
+			if (keysPressedNumpad[9]) // roll right
+				r[2] -= 1;
+			if (r != vec3())
+			{
+				r = normalize(r) * 3;
+				targetCameraOrientationShip = targetCameraOrientationShip * quat(degs(r[0]), degs(r[1]), degs(r[2]));
+				nozzlesTurning(r[0], r[1], r[2]);
 			}
+			t.orientation = slerp(t.orientation, targetCameraOrientationShip, 0.5);
+		}
+
+		{ // ship movement
+			vec3 m;
+			if (keysPressedArrows[0]) // w
+				m[2] -= 1;
+			if (keysPressedArrows[1]) // s
+				m[2] += 1;
+			if (keysPressedArrows[2]) // a
+				m[0] -= 1;
+			if (keysPressedArrows[3]) // d
+				m[0] += 1;
+			if (keysPressedArrows[4]) // e
+				m[1] += 1;
+			if (keysPressedArrows[5]) // q
+				m[1] -= 1;
+			if (m != vec3())
+				m = normalize(m);
+			nozzlesMoving(m[0], m[1], m[2], keysPressedSpace ? 1 : 0);
+			if (keysPressedSpace)
+				m[2] -= 6;
 			playerInertiaMotion *= 0.985;
 			playerInertiaMotion += t.orientation * m * 0.001;
 			t.position += playerInertiaMotion;
 			playerPosition = t.position;
-			updateNozzleEntities();
 		}
+
+		// nozzles
+		updateNozzleEntities();
 
 		{ // camera
 			if (!mouseButtons[2])
-				targetCameraOrientationView = interpolate(quat(), targetCameraOrientationView, 0.9);
+				targetCameraOrientationView = interpolate(targetCameraOrientationView, quat(), 0.1);
 
 			entityClass *camera = entities()->get(2);
 			ENGINE_GET_COMPONENT(transform, c, camera);
@@ -494,16 +462,6 @@ namespace
 				entityClass *cam2 = entities()->get(3);
 				ENGINE_GET_COMPONENT(transform, t2, cam2);
 				t2.orientation = c.orientation;
-			}
-
-			// weapon targets
-			if (mouseButtons[2])
-			{
-				for (uint32 i = 0; i < 3; i++)
-				{
-					if (keysPressedWeapons[i])
-						weaponDirectionTargets[i] = targetCameraOrientationView * vec3(0, 0, -1);
-				}
 			}
 		}
 
@@ -525,6 +483,9 @@ namespace
 		{ // weapons
 			for (uint32 i = 0; i < 3; i++)
 			{
+				if (keysPressedWeapons[i])
+					weaponDirectionTargets[i] = targetCameraOrientationView * vec3(0, 0, -1);
+
 				quat roll, yaw, pitch;
 				updateWeaponDirection(i, roll, yaw, pitch);
 
