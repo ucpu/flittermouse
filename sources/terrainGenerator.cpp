@@ -105,8 +105,8 @@ namespace
 					mc2c(quadVertices[q.i2]),
 					mc2c(quadVertices[q.i3])
 				};
-				for (const vec3 &p : p)
-					quadPositions.push_back(p + tp);
+				for (const vec3 &pi : p)
+					quadPositions.push_back(pi + tp);
 				vec3 n[4] = {
 					quadNormals[q.i0],
 					quadNormals[q.i1],
