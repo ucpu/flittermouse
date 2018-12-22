@@ -615,7 +615,7 @@ namespace
 				l.color = colors[i];
 				ENGINE_GET_COMPONENT(shadowmap, s, e);
 				s.resolution = 1024;
-				s.worldRadius = vec3(0.05, 60, 0);
+				s.worldSize = vec3(0.05, 60, 0);
 			}
 		}
 		weaponDirectionCurrent[0] = weaponDirectionTargets[0] = vec3(-0.6, 0, -1).normalize();
