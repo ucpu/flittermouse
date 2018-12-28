@@ -18,6 +18,14 @@ namespace
 	const uint32 texelsPerQuad = 10;
 	const real uvBorderFraction = 0.2;
 
+	holder<noiseClass> newClouds(uint32 seed, uint32 octaves)
+	{
+		noiseCreateConfig cfg;
+		cfg.octaves = octaves;
+		cfg.type = noiseTypeEnum::Value;
+		return newNoise(cfg);
+	}
+
 	template <class T>
 	T rescale(const T &v, real ia, real ib, real oa, real ob)
 	{
@@ -191,8 +199,10 @@ namespace
 
 	vec3 recolor(const vec3 &color, real deviation, uint32 seed, const vec3 &pos)
 	{
-		real h = noiseValue(seed + 0, pos * 3) * 0.5 + 0.25;
-		real v = noiseValue(seed + 1, pos * 4);
+		static holder<noiseClass> value1 = newClouds(globalSeed + 100, 1);
+		static holder<noiseClass> value2 = newClouds(globalSeed + 101, 1);
+		real h = (value1->evaluate(pos * 3) * 0.5 + 0.5) * 0.5 + 0.25;
+		real v = (value2->evaluate(pos * 4) * 0.5 + 0.5);
 		vec3 hsv = convertRgbToHsv(color) + (vec3(h, 1 - v, v) - 0.5) * deviation;
 		hsv[0] = (hsv[0] + 1) % 1;
 		return convertHsvToRgb(clamp(hsv, vec3(), vec3(1, 1, 1)));
@@ -201,9 +211,10 @@ namespace
 
 real terrainDensity(const vec3 &pos)
 {
-	//return noiseValue(globalSeed, pos * 0.3) - 0.6;
 	vec3 p2(pos[1], -pos[2], pos[0]);
-	return noiseClouds(globalSeed + 481, pos * 0.2) - noiseClouds(globalSeed + 967, p2 * 0.13);
+	static holder<noiseClass> clouds1 = newClouds(globalSeed + 200, 3);
+	static holder<noiseClass> clouds2 = newClouds(globalSeed + 201, 3);
+	return clouds1->evaluate(pos * 0.2) - clouds2->evaluate(p2 * 0.13);
 }
 
 void terrainMaterial(const vec3 &pos, vec3 &albedo, vec2 &special)
@@ -219,7 +230,8 @@ void terrainMaterial(const vec3 &pos, vec3 &albedo, vec2 &special)
 		pdnToRgb(21, 69, 55)
 	};
 
-	real c = (noiseClouds(globalSeed + 13, pos * 0.042, 8) * 16) % 8;
+	static holder<noiseClass> clouds1 = newClouds(globalSeed + 300, 8);
+	real c = ((clouds1->evaluate(pos * 0.042) * 0.5 + 0.5) * 16) % 8;
 	uint32 i = numeric_cast<uint32>(c);
 	real f = sharpEdge(c - i);
 	albedo = interpolate(colors[i], colors[(i + 1) % 8], f);
