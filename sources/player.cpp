@@ -536,8 +536,9 @@ namespace
 			ENGINE_GET_COMPONENT(camera, c, cam);
 			c.near = 0.005;
 			c.far = 100;
-			c.ambientLight = vec3(1, 1, 1) * 0.08;
+			c.ambientLight = vec3(1, 1, 1) * 0.003;
 			c.clear = cameraClearFlags::None;
+			c.effects = cameraEffectsFlags::CombinedPass;
 		}
 
 		{ // skybox camera
@@ -585,9 +586,9 @@ namespace
 		for (uint32 i = 0; i < 3; i++)
 		{
 			static const vec3 colors[] = {
-				vec3(1, 0.2, 0.2),
-				vec3(1, 1, 1),
-				vec3(0.2, 1, 0.2),
+				vec3(1, 0.7, 0.7) * 2,
+				vec3(1, 1, 1) * 3,
+				vec3(0.7, 1, 0.7) * 2,
 			};
 			{ // base
 				entityClass *e = entities()->create(70 + i * 5);
@@ -609,13 +610,12 @@ namespace
 				entityClass *e = entities()->create(73 + i * 5);
 				ENGINE_GET_COMPONENT(light, l, e);
 				l.lightType = lightTypeEnum::Spot;
-				l.attenuation = vec3(0.5, 0.03, 0.01);
+				l.attenuation = vec3(1, 0, 0.2);
 				l.spotAngle = degs(30);
-				l.spotExponent = 1.3;
 				l.color = colors[i];
 				ENGINE_GET_COMPONENT(shadowmap, s, e);
 				s.resolution = 1024;
-				s.worldSize = vec3(0.05, 60, 0);
+				s.worldSize = vec3(0.05, 100, 0);
 			}
 		}
 		weaponDirectionCurrent[0] = weaponDirectionTargets[0] = vec3(-0.6, 0, -1).normalize();

@@ -21,8 +21,8 @@
 
 namespace
 {
-	const real distanceToLoadTile = tileLength * 3;
-	const real distanceToUnloadTile = tileLength * 5;
+	const real distanceToLoadTile = tileLength * 5;
+	const real distanceToUnloadTile = tileLength * 6;
 
 	enum class tileStatusEnum
 	{

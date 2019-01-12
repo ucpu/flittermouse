@@ -9,4 +9,5 @@ skybox.obj
 
 []
 scheme = texture
+degamma_on = true
 skybox.png

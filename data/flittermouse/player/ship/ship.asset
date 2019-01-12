@@ -15,11 +15,13 @@ ship.obj?eye_prototype_eye
 
 []
 scheme = texture
+degamma_on = true
 ship.png
 habitable.png
 
 []
 scheme = texture
+degamma_on = true
 animation_duration = 200000
 target = GL_TEXTURE_2D_ARRAY
 nozzleFlame_$.png
