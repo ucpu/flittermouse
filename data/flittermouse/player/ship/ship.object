@@ -1,7 +1,4 @@
 
-[ref]
-collider = ship.obj?collider
-
 []
 ship.obj?ship
 ship.obj?eye_prototype_eye

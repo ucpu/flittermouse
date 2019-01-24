@@ -242,7 +242,7 @@ namespace
 			t->image2d(image->width(), image->height(), GL_RG8, GL_RG, GL_UNSIGNED_BYTE, image->bufferData());
 			break;
 		case 3:
-			t->image2d(image->width(), image->height(), GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, image->bufferData());
+			t->image2d(image->width(), image->height(), GL_SRGB8, GL_RGB, GL_UNSIGNED_BYTE, image->bufferData());
 			break;
 		}
 		//t->filters(GL_NEAREST, GL_NEAREST, 0);
@@ -259,17 +259,13 @@ namespace
 			return holder<meshClass>();
 		holder<meshClass> m = newMesh(window());
 		meshHeaderStruct::materialDataStruct material;
-		//material.albedoBase = vec4(1, 0, 0, 1);
-		//material.specialBase = vec4(0.5, 0.5, 0, 0);
-		material.albedoMult = material.specialMult = vec4(1, 1, 1, 1);
 		m->setBuffers(numeric_cast<uint32>(vertices.size()), sizeof(vertexStruct), vertices.data(), numeric_cast<uint32>(indices.size()), indices.data(), sizeof(material), &material);
 		m->setPrimitiveType(GL_TRIANGLES);
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_POSITION, 3, GL_FLOAT, sizeof(vertexStruct), 0);
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_NORMAL, 3, GL_FLOAT, sizeof(vertexStruct), 12);
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_UV, 2, GL_FLOAT, sizeof(vertexStruct), 24);
 		real l = tileLength * 0.5;
-		m->setBoundingBox(aabb(vec3(-l, -l, -l), vec3(l, l, l)));
-		m->setFlags(meshFlags::DepthTest | meshFlags::DepthWrite | meshFlags::Lighting | meshFlags::Normals | meshFlags::ShadowCast | meshFlags::Uvs | meshFlags::TwoSided);
+		m->setBoundingBox(aabb(vec3(-l), vec3(l)));
 		std::vector<vertexStruct>().swap(vertices);
 		std::vector<uint32>().swap(indices);
 		return m;

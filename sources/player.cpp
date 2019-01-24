@@ -536,7 +536,7 @@ namespace
 			ENGINE_GET_COMPONENT(camera, c, cam);
 			c.near = 0.005;
 			c.far = 100;
-			c.ambientLight = vec3(1, 1, 1) * 0.003;
+			c.ambientLight = vec3(0.007);
 			c.clear = cameraClearFlags::None;
 			c.effects = cameraEffectsFlags::CombinedPass;
 		}
@@ -544,7 +544,7 @@ namespace
 		{ // skybox camera
 			entityClass *cam = entities()->create(3);
 			ENGINE_GET_COMPONENT(camera, c, cam);
-			c.ambientLight = vec3(1, 1, 1);
+			c.ambientLight = vec3(1);
 			c.renderMask = 10;
 			c.cameraOrder = -1;
 			c.near = 0.5;
