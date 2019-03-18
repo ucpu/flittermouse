@@ -23,7 +23,7 @@ habitable.png
 scheme = texture
 srgb = true
 animation_duration = 200000
-target = GL_TEXTURE_2D_ARRAY
+target = 2d_array
 nozzleFlame_$.png
 
 []

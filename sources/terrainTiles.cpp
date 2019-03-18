@@ -130,7 +130,7 @@ namespace
 						textures[0] = t.albedoName;
 						textures[1] = t.materialName;
 						//textures[2] = t.normalName;
-						t.gpuMesh->setTextures(textures);
+						t.gpuMesh->setTextureNames(textures);
 					}
 					{ // set object properties
 						float thresholds[1] = { 0 };
@@ -235,7 +235,7 @@ namespace
 	{
 		if (!image)
 			return holder<textureClass>();
-		holder<textureClass> t = newTexture(window());
+		holder<textureClass> t = newTexture();
 		switch (image->channels())
 		{
 		case 2:
@@ -257,7 +257,7 @@ namespace
 	{
 		if (vertices.size() == 0)
 			return holder<meshClass>();
-		holder<meshClass> m = newMesh(window());
+		holder<meshClass> m = newMesh();
 		meshHeaderStruct::materialDataStruct material;
 		m->setBuffers(numeric_cast<uint32>(vertices.size()), sizeof(vertexStruct), vertices.data(), numeric_cast<uint32>(indices.size()), indices.data(), sizeof(material), &material);
 		m->setPrimitiveType(GL_TRIANGLES);
