@@ -23,6 +23,7 @@ namespace
 		noiseCreateConfig cfg;
 		cfg.octaves = octaves;
 		cfg.type = noiseTypeEnum::Value;
+		cfg.seed = seed;
 		return newNoise(cfg);
 	}
 

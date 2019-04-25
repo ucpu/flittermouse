@@ -1,4 +1,7 @@
 
 []
-ship/ship.pack
-weapons/weapons.pack
+magnet.object
+muzzle.object
+ship.object
+tower.object
+

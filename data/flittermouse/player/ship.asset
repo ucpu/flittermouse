@@ -1,0 +1,35 @@
+
+[]
+scheme = mesh
+export_uv = false
+export_tangent = false
+scale = 0.02
+ship.obj?legs
+ship.obj?hull
+ship.obj?glass
+ship.obj?internals
+ship.obj?fangs
+ship.obj?lightbulb
+ship.obj?magnet-base
+ship.obj?magnet-shiny
+ship.obj?cannon-tower
+ship.obj?cannon-muzzle
+
+[]
+scheme = mesh
+scale = 0.02
+ship.obj?sign
+
+[]
+scheme = texture
+sign.png
+
+
+
+[]
+scheme = object
+ship.object
+magnet.object
+tower.object
+muzzle.object
+
