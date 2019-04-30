@@ -21,9 +21,6 @@
 
 namespace
 {
-	const real distanceToLoadTile = tileLength * 5;
-	const real distanceToUnloadTile = tileLength * 6;
-
 	enum class tileStatusEnum
 	{
 		Init,
@@ -65,7 +62,7 @@ namespace
 
 		real distanceToPlayer() const
 		{
-			return pos.distanceToPlayer(tileLength);
+			return pos.distanceToPlayer();
 		}
 	};
 
@@ -76,31 +73,9 @@ namespace
 	// CONTROL
 	/////////////////////////////////////////////////////////////////////////////
 
-	std::set<tilePosStruct> findNeededTiles(real tileLength, real range)
+	void engineUpdate()
 	{
-		std::set<tilePosStruct> neededTiles;
-		tilePosStruct pt;
-		pt.x = numeric_cast<sint32>(playerPosition[0] / tileLength);
-		pt.y = numeric_cast<sint32>(playerPosition[1] / tileLength);
-		pt.z = numeric_cast<sint32>(playerPosition[2] / tileLength);
-		tilePosStruct r;
-		for (r.z = pt.z - 10; r.z <= pt.z + 10; r.z++)
-		{
-			for (r.y = pt.y - 10; r.y <= pt.y + 10; r.y++)
-			{
-				for (r.x = pt.x - 10; r.x <= pt.x + 10; r.x++)
-				{
-					if (r.distanceToPlayer(tileLength) < range)
-						neededTiles.insert(r);
-				}
-			}
-		}
-		return neededTiles;
-	}
-
-	bool engineUpdate()
-	{
-		std::set<tilePosStruct> neededTiles = stopping ? std::set<tilePosStruct>() : findNeededTiles(tileLength, distanceToLoadTile);
+		std::set<tilePosStruct> neededTiles = stopping ? std::set<tilePosStruct>() : findNeededTiles();
 		for (tileStruct &t : tiles)
 		{
 			// mark unneeded tiles
@@ -123,7 +98,7 @@ namespace
 			{
 				if (t.cpuCollider)
 				{
-					terrainAddCollider(t.objectName, t.cpuCollider.get(), transform(vec3(t.pos.x, t.pos.y, t.pos.z) * tileLength));
+					terrainAddCollider(t.objectName, t.cpuCollider.get(), t.pos.getTransform());
 					{ // set texture names for the mesh
 						uint32 textures[MaxTexturesCountPerMaterial];
 						detail::memset(textures, 0, sizeof(textures));
@@ -141,7 +116,7 @@ namespace
 					{ // create the entity
 						t.entity = entities()->createAnonymous();
 						ENGINE_GET_COMPONENT(transform, tr, t.entity);
-						tr.position = vec3(t.pos.x, t.pos.y, t.pos.z) * tileLength;
+						tr = t.pos.getTransform();
 						ENGINE_GET_COMPONENT(render, r, t.entity);
 						r.object = t.objectName;
 					}
@@ -168,21 +143,18 @@ namespace
 			CAGE_LOG(severityEnum::Warning, "flittermouse", "not enough terrain tile slots");
 			detail::debugBreakpoint();
 		}
-
-		return false;
 	}
 
-	bool engineFinalize()
+	void engineFinalize()
 	{
 		stopping = true;
-		return false;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
 	// ASSETS
 	/////////////////////////////////////////////////////////////////////////////
 
-	bool engineAssets()
+	void engineAssets()
 	{
 		if (stopping)
 			engineUpdate();
@@ -224,7 +196,6 @@ namespace
 				break;
 			}
 		}
-		return false;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -277,16 +248,17 @@ namespace
 		return o;
 	}
 
-	bool engineDispatch()
+	void engineDispatch()
 	{
 		CAGE_CHECK_GL_ERROR_DEBUG();
 		for (tileStruct &t : tiles)
 		{
-			if (t.status == tileStatusEnum::Unload1)
+			switch (t.status)
 			{
+			case tileStatusEnum::Unload1:
 				t.status = tileStatusEnum::Unload2;
-			}
-			else if (t.status == tileStatusEnum::Unload2)
+				break;
+			case tileStatusEnum::Unload2:
 			{
 				t.gpuAlbedo.clear();
 				t.gpuMaterial.clear();
@@ -294,11 +266,8 @@ namespace
 				//t.gpuNormal.clear();
 				t.gpuObject.clear();
 				t.status = tileStatusEnum::Init;
-			}
-		}
-		for (tileStruct &t : tiles)
-		{
-			if (t.status == tileStatusEnum::Upload)
+			} break;
+			case tileStatusEnum::Upload:
 			{
 				t.gpuAlbedo = dispatchTexture(t.cpuAlbedo);
 				t.gpuMaterial = dispatchTexture(t.cpuMaterial);
@@ -306,11 +275,10 @@ namespace
 				t.gpuMesh = dispatchMesh(t.cpuMeshVertices, t.cpuMeshIndices);
 				t.gpuObject = dispatchObject();
 				t.status = tileStatusEnum::Fabricate;
-				break;
+			} break;
 			}
 		}
 		CAGE_CHECK_GL_ERROR_DEBUG();
-		return false;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -378,7 +346,7 @@ namespace
 			tileStruct *t = generatorChooseTile();
 			if (!t)
 			{
-				threadSleep(10000);
+				threadSleep(3000);
 				continue;
 			}
 			terrainGenerate(t->pos, t->cpuMeshVertices, t->cpuMeshIndices, t->cpuAlbedo, t->cpuMaterial);
@@ -391,14 +359,14 @@ namespace
 	// INITIALIZE
 	/////////////////////////////////////////////////////////////////////////////
 
-	std::vector<holder<threadClass>> generatorThreads;
 
 	class callbacksInitClass
 	{
-		eventListener<bool()> engineUpdateListener;
-		eventListener<bool()> engineAssetsListener;
-		eventListener<bool()> engineFinalizeListener;
-		eventListener<bool()> engineDispatchListener;
+		std::vector<holder<threadClass>> generatorThreads;
+		eventListener<void()> engineUpdateListener;
+		eventListener<void()> engineAssetsListener;
+		eventListener<void()> engineFinalizeListener;
+		eventListener<void()> engineDispatchListener;
 	public:
 		callbacksInitClass()
 		{
