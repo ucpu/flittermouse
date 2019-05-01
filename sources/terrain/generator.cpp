@@ -1,7 +1,5 @@
-
 #include "terrain.h"
 
-#include <cage-core/log.h>
 #include <cage-core/geometry.h>
 #include <cage-core/noise.h>
 #include <cage-core/color.h>
@@ -14,7 +12,7 @@ namespace
 {
 	const uint32 globalSeed = (uint32)currentRandomGenerator().next();
 
-	const uint32 quadsPerTile = 20;
+	const uint32 quadsPerTile = 24;
 	const uint32 texelsPerQuad = 10;
 	const real uvBorderFraction = 0.2;
 
@@ -66,7 +64,7 @@ namespace
 		// marching cubes space -> local (normalized) space
 		vec3 m2c(const dualmc::Vertex &v) const
 		{
-			return (vec3(v.x, v.y, v.z) - 1) / (quadsPerTile - 3) * 2 - 1; // returns -1..+1
+			return (vec3(v.x, v.y, v.z) - 2) / (quadsPerTile - 5) * 2 - 1; // returns -1..+1
 		}
 
 		vec3 l2w(const vec3 &p) const

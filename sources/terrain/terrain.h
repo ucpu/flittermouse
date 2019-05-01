@@ -3,6 +3,7 @@
 
 #include <set>
 #include <vector>
+#include <array>
 
 #include "../common.h"
 

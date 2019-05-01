@@ -1,7 +1,5 @@
-
 #include "common.h"
 
-#include <cage-core/log.h>
 #include <cage-core/geometry.h>
 #include <cage-core/entities.h>
 #include <cage-core/collider.h>
@@ -153,8 +151,8 @@ namespace
 			entityClass *e = entities()->create(1);
 			ENGINE_GET_COMPONENT(transform, t, e);
 			ENGINE_GET_COMPONENT(camera, c, e);
-			c.near = 0.01;
-			c.far = 50;
+			c.near = 0.05;
+			c.far = 100;
 			c.ambientLight = vec3(1);
 			c.effects = cameraEffectsFlags::CombinedPass;
 		}

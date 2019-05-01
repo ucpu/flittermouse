@@ -3,7 +3,6 @@
 
 #include "terrain.h"
 
-#include <cage-core/log.h>
 #include <cage-core/entities.h>
 #include <cage-core/geometry.h>
 #include <cage-core/concurrent.h>
@@ -274,7 +273,7 @@ namespace
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_POSITION, 3, GL_FLOAT, sizeof(vertexStruct), 0);
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_NORMAL, 3, GL_FLOAT, sizeof(vertexStruct), 12);
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_UV, 2, GL_FLOAT, sizeof(vertexStruct), 24);
-		m->setBoundingBox(aabb(vec3(-1), vec3(1)));
+		m->setBoundingBox(aabb(vec3(-1.5), vec3(1.5)));
 		std::vector<vertexStruct>().swap(vertices);
 		std::vector<uint32>().swap(indices);
 		return m;
