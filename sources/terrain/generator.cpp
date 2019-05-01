@@ -18,15 +18,6 @@ namespace
 	const uint32 texelsPerQuad = 10;
 	const real uvBorderFraction = 0.2;
 
-	holder<noiseClass> newClouds(uint32 seed, uint32 octaves)
-	{
-		noiseCreateConfig cfg;
-		cfg.octaves = octaves;
-		cfg.type = noiseTypeEnum::Value;
-		cfg.seed = seed;
-		return newNoise(cfg);
-	}
-
 	template <class T>
 	T rescale(const T &v, real ia, real ib, real oa, real ob)
 	{
@@ -35,30 +26,32 @@ namespace
 
 	struct meshGenStruct
 	{
+		const tilePosStruct tilePos;
+		mat4 tr;
 		std::vector<dualmc::Vertex> quadVertices; // model space, indexed
 		std::vector<dualmc::Quad> quadIndices;
-		std::vector<vec3> quadPositions; // world space, NOT indexed
+		std::vector<vec3> quadPositions; // local (normalized) space, NOT indexed
 		std::vector<vec3> quadNormals;
 		std::vector<float> densities;
-		vec3 tp;
 		uint32 quadsPerLine;
 
-		meshGenStruct()
+		meshGenStruct(const tilePosStruct &tilePos) : tilePos(tilePos)
 		{
 			densities.reserve(quadsPerTile * quadsPerTile * quadsPerTile);
+			tr = mat4(tilePos.getTransform());
 		}
 
-		void genDensities(const tilePosStruct &tilePos)
+		void genDensities()
 		{
-			tp = (vec3(tilePos.x, tilePos.y, tilePos.z) - 0.5) * tileLength;
 			for (uint32 z = 0; z < quadsPerTile; z++)
 			{
 				for (uint32 y = 0; y < quadsPerTile; y++)
 				{
 					for (uint32 x = 0; x < quadsPerTile; x++)
 					{
-						vec3 d = vec3(x, y, z) * tileLength / (quadsPerTile - 3);
-						densities.push_back(terrainDensity(tp + d).value);
+						dualmc::Vertex v = dualmc::Vertex(x, y, z);
+						vec3 w = l2w(m2c(v));
+						densities.push_back(terrainDensity(w).value);
 					}
 				}
 			}
@@ -70,9 +63,15 @@ namespace
 			mc.build(densities.data(), quadsPerTile, quadsPerTile, quadsPerTile, 0, true, false, quadVertices, quadIndices);
 		}
 
-		vec3 mc2c(const dualmc::Vertex &v)
+		// marching cubes space -> local (normalized) space
+		vec3 m2c(const dualmc::Vertex &v) const
 		{
-			return (vec3(v.x, v.y, v.z) / (quadsPerTile - 3) - 0.5) * tileLength;
+			return (vec3(v.x, v.y, v.z) - 1) / (quadsPerTile - 3) * 2 - 1; // returns -1..+1
+		}
+
+		vec3 l2w(const vec3 &p) const
+		{
+			return vec3(tr * vec4(p, 1));
 		}
 
 		void genNormals()
@@ -81,10 +80,10 @@ namespace
 			for (dualmc::Quad q : quadIndices)
 			{
 				vec3 p[4] = {
-					mc2c(quadVertices[q.i0]),
-					mc2c(quadVertices[q.i1]),
-					mc2c(quadVertices[q.i2]),
-					mc2c(quadVertices[q.i3])
+					m2c(quadVertices[q.i0]),
+					m2c(quadVertices[q.i1]),
+					m2c(quadVertices[q.i2]),
+					m2c(quadVertices[q.i3])
 				};
 				vec3 n = cross(p[1] - p[0], p[3] - p[0]).normalize();
 				for (uint32 i : { q.i0, q.i1, q.i2, q.i3 })
@@ -109,13 +108,13 @@ namespace
 			for (const auto &q : quadIndices)
 			{
 				vec3 p[4] = {
-					mc2c(quadVertices[q.i0]),
-					mc2c(quadVertices[q.i1]),
-					mc2c(quadVertices[q.i2]),
-					mc2c(quadVertices[q.i3])
+					m2c(quadVertices[q.i0]),
+					m2c(quadVertices[q.i1]),
+					m2c(quadVertices[q.i2]),
+					m2c(quadVertices[q.i3])
 				};
 				for (const vec3 &pi : p)
-					quadPositions.push_back(pi + tp);
+					quadPositions.push_back(pi);
 				vec3 n[4] = {
 					quadNormals[q.i0],
 					quadNormals[q.i1],
@@ -152,6 +151,9 @@ namespace
 
 		void genTextures(holder<pngImageClass> &albedo, holder<pngImageClass> &special)
 		{
+			std::vector<vec3> wps(quadPositions.begin(), quadPositions.end());
+			for (vec3 &v : wps)
+				v = l2w(v);
 			uint32 quadsCount = numeric_cast<uint32>(quadPositions.size() / 4);
 			uint32 res = quadsPerLine * texelsPerQuad;
 			albedo = newPngImage();
@@ -171,10 +173,9 @@ namespace
 					vec2 f = vec2(x % texelsPerQuad, y % texelsPerQuad) / texelsPerQuad;
 					CAGE_ASSERT_RUNTIME(f[0] >= 0 && f[0] <= 1 && f[1] >= 0 && f[1] <= 1, f);
 					f = rescale(f, uvBorderFraction, 1 - uvBorderFraction, 0, 1);
-					//f = (f - uvBorderFraction) / (1 - uvBorderFraction * 2);
 					vec3 pos = interpolate(
-						interpolate(quadPositions[quadIndex * 4 + 0], quadPositions[quadIndex * 4 + 1], f[0]),
-						interpolate(quadPositions[quadIndex * 4 + 3], quadPositions[quadIndex * 4 + 2], f[0]),
+						interpolate(wps[quadIndex * 4 + 0], wps[quadIndex * 4 + 1], f[0]),
+						interpolate(wps[quadIndex * 4 + 3], wps[quadIndex * 4 + 2], f[0]),
 						f[1]);
 					vec3 alb; vec2 spc;
 					terrainMaterial(pos, alb, spc);
@@ -184,9 +185,17 @@ namespace
 						special->value(x, y, i, spc[i].value);
 				}
 			}
-			//albedo->encodeFile(string() + "textures/" + tp + ".png");
 		}
 	};
+
+	holder<noiseClass> newClouds(uint32 seed, uint32 octaves)
+	{
+		noiseCreateConfig cfg;
+		cfg.octaves = octaves;
+		cfg.type = noiseTypeEnum::Value;
+		cfg.seed = seed;
+		return newNoise(cfg);
+	}
 
 	vec3 pdnToRgb(real h, real s, real v)
 	{
@@ -206,7 +215,7 @@ namespace
 		real v = (value2->evaluate(pos * 4) * 0.5 + 0.5);
 		vec3 hsv = convertRgbToHsv(color) + (vec3(h, 1 - v, v) - 0.5) * deviation;
 		hsv[0] = (hsv[0] + 1) % 1;
-		return convertHsvToRgb(clamp(hsv, vec3(), vec3(1, 1, 1)));
+		return convertHsvToRgb(clamp(hsv, vec3(), vec3(1)));
 	}
 }
 
@@ -250,16 +259,16 @@ vec3 colorDeviation(const vec3 &color, real deviation)
 void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<pngImageClass> &albedo, holder<pngImageClass> &special)
 {
 	// generate mesh
-	meshGenStruct mesh;
-	mesh.genDensities(tilePos);
-	mesh.genSurface();
-	mesh.genNormals();
-	mesh.genOutput(meshVertices, meshIndices);
+	meshGenStruct generator(tilePos);
+	generator.genDensities();
+	generator.genSurface();
+	generator.genNormals();
+	generator.genOutput(meshVertices, meshIndices);
 	CAGE_LOG_DEBUG(severityEnum::Info, "generator", string() + "generated mesh with " + meshVertices.size() + " vertices and " + meshIndices.size() + " indices");
 
 	if (meshVertices.size() == 0)
 		return;
 
 	// generate textures
-	mesh.genTextures(albedo, special);
+	generator.genTextures(albedo, special);
 }

@@ -73,20 +73,40 @@ namespace
 	// CONTROL
 	/////////////////////////////////////////////////////////////////////////////
 
-	void engineUpdate()
+	std::set<tilePosStruct> findReadyTiles()
 	{
-		std::set<tilePosStruct> neededTiles = stopping ? std::set<tilePosStruct>() : findNeededTiles();
+		std::set<tilePosStruct> readyTiles;
 		for (tileStruct &t : tiles)
 		{
-			// mark unneeded tiles
+			if (t.status == tileStatusEnum::Ready)
+				readyTiles.insert(t.pos);
+		}
+		return readyTiles;
+	}
+
+	void engineUpdate()
+	{
+		std::set<tilePosStruct> neededTiles = stopping ? std::set<tilePosStruct>() : findNeededTiles(findReadyTiles());
+		for (tileStruct &t : tiles)
+		{
+			bool visible = false;
+			bool requested = false;
+			// find visibility
 			if (t.status != tileStatusEnum::Init)
-				neededTiles.erase(t.pos);
+			{
+				auto it = neededTiles.find(t.pos);
+				if (it != neededTiles.end())
+				{
+					visible = it->visible;
+					requested = true;
+					neededTiles.erase(it);
+				}
+			}
 			// remove tiles
-			if (t.status == tileStatusEnum::Ready && (t.distanceToPlayer() > distanceToUnloadTile || stopping))
+			if (t.status == tileStatusEnum::Ready && (!requested || stopping))
 			{
 				if (t.cpuCollider)
 				{
-					terrainRemoveCollider(t.objectName);
 					t.cpuCollider.clear();
 					t.entity->destroy();
 					t.entity = nullptr;
@@ -98,7 +118,6 @@ namespace
 			{
 				if (t.cpuCollider)
 				{
-					terrainAddCollider(t.objectName, t.cpuCollider.get(), t.pos.getTransform());
 					{ // set texture names for the mesh
 						uint32 textures[MaxTexturesCountPerMaterial];
 						detail::memset(textures, 0, sizeof(textures));
@@ -117,12 +136,32 @@ namespace
 						t.entity = entities()->createAnonymous();
 						ENGINE_GET_COMPONENT(transform, tr, t.entity);
 						tr = t.pos.getTransform();
-						ENGINE_GET_COMPONENT(render, r, t.entity);
-						r.object = t.objectName;
 					}
 				}
 				t.status = tileStatusEnum::Ready;
 			}
+			if (t.entity)
+			{
+				CAGE_ASSERT_RUNTIME(t.status == tileStatusEnum::Ready);
+				CAGE_ASSERT_RUNTIME(!!t.cpuCollider);
+				if (t.pos.visible != visible)
+				{
+					if (visible)
+					{
+						terrainAddCollider(t.objectName, t.cpuCollider.get(), t.pos.getTransform());
+						ENGINE_GET_COMPONENT(render, r, t.entity);
+						r.object = t.objectName;
+					}
+					else
+					{
+						terrainRemoveCollider(t.objectName);
+						t.entity->remove(renderComponent::component);
+					}
+					t.pos.visible = visible;
+				}
+			}
+			else
+				t.pos.visible = false;
 		}
 
 		// generate new needed tiles
@@ -133,8 +172,8 @@ namespace
 			if (t.status == tileStatusEnum::Init)
 			{
 				t.pos = *neededTiles.begin();
-				neededTiles.erase(neededTiles.begin());
 				t.status = tileStatusEnum::Generate;
+				neededTiles.erase(neededTiles.begin());
 			}
 		}
 
@@ -235,8 +274,7 @@ namespace
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_POSITION, 3, GL_FLOAT, sizeof(vertexStruct), 0);
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_NORMAL, 3, GL_FLOAT, sizeof(vertexStruct), 12);
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_UV, 2, GL_FLOAT, sizeof(vertexStruct), 24);
-		real l = tileLength * 0.5;
-		m->setBoundingBox(aabb(vec3(-l), vec3(l)));
+		m->setBoundingBox(aabb(vec3(-1), vec3(1)));
 		std::vector<vertexStruct>().swap(vertices);
 		std::vector<uint32>().swap(indices);
 		return m;
@@ -294,12 +332,6 @@ namespace
 		{
 			if (t.status != tileStatusEnum::Generate)
 				continue;
-			real d = t.distanceToPlayer();
-			if (d > distanceToUnloadTile)
-			{
-				t.status = tileStatusEnum::Init;
-				continue;
-			}
 			if (result && t.distanceToPlayer() > result->distanceToPlayer())
 				continue;
 			result = &t;

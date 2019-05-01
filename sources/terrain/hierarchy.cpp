@@ -3,21 +3,22 @@
 #include <cage-core/log.h>
 #include <cage-core/geometry.h>
 
-std::set<tilePosStruct> findNeededTiles()
+std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesReady)
 {
 	std::set<tilePosStruct> neededTiles;
 	tilePosStruct pt;
-	pt.x = numeric_cast<sint32>(playerPosition[0] / tileLength);
-	pt.y = numeric_cast<sint32>(playerPosition[1] / tileLength);
-	pt.z = numeric_cast<sint32>(playerPosition[2] / tileLength);
+	pt.x = numeric_cast<sint32>(playerPosition[0] / 10) * 10;
+	pt.y = numeric_cast<sint32>(playerPosition[1] / 10) * 10;
+	pt.z = numeric_cast<sint32>(playerPosition[2] / 10) * 10;
 	tilePosStruct r;
-	for (r.z = pt.z - 10; r.z <= pt.z + 10; r.z++)
+	r.radius = 5;
+	for (r.z = pt.z - 100; r.z <= pt.z + 100; r.z += 10)
 	{
-		for (r.y = pt.y - 10; r.y <= pt.y + 10; r.y++)
+		for (r.y = pt.y - 100; r.y <= pt.y + 100; r.y += 10)
 		{
-			for (r.x = pt.x - 10; r.x <= pt.x + 10; r.x++)
+			for (r.x = pt.x - 100; r.x <= pt.x + 100; r.x += 10)
 			{
-				if (r.distanceToPlayer() < distanceToLoadTile)
+				if (r.distanceToPlayer() < 50)
 					neededTiles.insert(r);
 			}
 		}
