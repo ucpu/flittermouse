@@ -4,7 +4,7 @@
 #include <cage-core/noise.h>
 #include <cage-core/color.h>
 #include <cage-core/random.h>
-#include <cage-core/png.h>
+#include <cage-core/image.h>
 
 #include "dualmc.h"
 
@@ -187,13 +187,13 @@ namespace
 			}
 		}
 
-		void genTextures(holder<pngImageClass> &albedo, holder<pngImageClass> &special)
+		void genTextures(holder<imageClass> &albedo, holder<imageClass> &special)
 		{
 			uint32 quadsCount = numeric_cast<uint32>(quadPositions.size() / 4);
 			uint32 res = quadsPerLine * texelsPerQuad;
-			albedo = newPngImage();
+			albedo = newImage();
 			albedo->empty(res, res, 3);
-			special = newPngImage();
+			special = newImage();
 			special->empty(res, res, 2);
 			std::vector<vec3> positions;
 			positions.reserve(res * res);
@@ -296,7 +296,7 @@ namespace
 	};
 }
 
-void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<pngImageClass> &albedo, holder<pngImageClass> &special)
+void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<imageClass> &albedo, holder<imageClass> &special)
 {
 	// generate mesh
 	meshGenStruct generator(tilePos);

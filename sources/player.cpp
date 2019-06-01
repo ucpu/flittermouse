@@ -20,7 +20,7 @@ namespace
 	bool keyboardKeys[6]; // wsadeq
 	vec3 mouseMoved; // x, y, wheel
 
-	variableSmoothingBufferStruct<quat, 3> cameraSmoothing;
+	variableSmoothingBuffer<quat, 3> cameraSmoothing;
 	vec3 playerSpeed;
 
 	void engineUpdate()
