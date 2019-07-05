@@ -9,7 +9,7 @@
 #include <cage-core/assetManager.h>
 #include <cage-core/memoryBuffer.h>
 #include <cage-core/image.h>
-#include <cage-core/collider.h>
+#include <cage-core/collisionMesh.h>
 
 #include <cage-client/core.h>
 #include <cage-client/engine.h>
@@ -39,17 +39,17 @@ namespace
 		std::atomic<tileStatusEnum> status;
 		std::vector<vertexStruct> cpuMeshVertices;
 		std::vector<uint32> cpuMeshIndices;
-		holder<colliderClass> cpuCollider;
-		holder<meshClass> gpuMesh;
-		holder<textureClass> gpuAlbedo;
-		holder<imageClass> cpuAlbedo;
-		holder<textureClass> gpuMaterial;
-		holder<imageClass> cpuMaterial;
-		//holder<textureClass> gpuNormal;
-		//holder<imageClass> cpuNormal;
-		holder<objectClass> gpuObject;
+		holder<collisionMesh> cpuCollider;
+		holder<renderMesh> gpuMesh;
+		holder<renderTexture> gpuAlbedo;
+		holder<image> cpuAlbedo;
+		holder<renderTexture> gpuMaterial;
+		holder<image> cpuMaterial;
+		//holder<renderTexture> gpuNormal;
+		//holder<image> cpuNormal;
+		holder<renderObject> gpuObject;
 		tilePosStruct pos;
-		entityClass *entity;
+		entity *entity;
 		uint32 meshName;
 		uint32 albedoName;
 		uint32 materialName;
@@ -133,7 +133,7 @@ namespace
 					}
 					{ // create the entity
 						t.entity = entities()->createAnonymous();
-						ENGINE_GET_COMPONENT(transform, tr, t.entity);
+						CAGE_COMPONENT_ENGINE(transform, tr, t.entity);
 						tr = t.pos.getTransform();
 					}
 				}
@@ -148,7 +148,7 @@ namespace
 					if (visible)
 					{
 						terrainAddCollider(t.objectName, t.cpuCollider.get(), t.pos.getTransform());
-						ENGINE_GET_COMPONENT(render, r, t.entity);
+						CAGE_COMPONENT_ENGINE(render, r, t.entity);
 						r.object = t.objectName;
 					}
 					else
@@ -205,16 +205,16 @@ namespace
 				//t.normalName = assets()->generateUniqueName();
 				t.meshName = assets()->generateUniqueName();
 				t.objectName = assets()->generateUniqueName();
-				assets()->fabricate(assetSchemeIndexTexture, t.albedoName, string() + "albedo " + t.pos);
-				assets()->fabricate(assetSchemeIndexTexture, t.materialName, string() + "material " + t.pos);
-				//assets()->fabricate(assetSchemeIndexTexture, t.normalName, string() + "normal " + t.pos);
+				assets()->fabricate(assetSchemeIndexRenderTexture, t.albedoName, string() + "albedo " + t.pos);
+				assets()->fabricate(assetSchemeIndexRenderTexture, t.materialName, string() + "material " + t.pos);
+				//assets()->fabricate(assetSchemeIndexRenderTexture, t.normalName, string() + "normal " + t.pos);
 				assets()->fabricate(assetSchemeIndexMesh, t.meshName, string() + "mesh " + t.pos);
-				assets()->fabricate(assetSchemeIndexObject, t.objectName, string() + "object " + t.pos);
-				assets()->set<assetSchemeIndexTexture, textureClass>(t.albedoName, t.gpuAlbedo.get());
-				assets()->set<assetSchemeIndexTexture, textureClass>(t.materialName, t.gpuMaterial.get());
-				//assets()->set<assetSchemeIndexTexture, textureClass>(t.normalName, t.gpuNormal.get());
-				assets()->set<assetSchemeIndexMesh, meshClass>(t.meshName, t.gpuMesh.get());
-				assets()->set<assetSchemeIndexObject, objectClass>(t.objectName, t.gpuObject.get());
+				assets()->fabricate(assetSchemeIndexRenderObject, t.objectName, string() + "object " + t.pos);
+				assets()->set<assetSchemeIndexRenderTexture, renderTexture>(t.albedoName, t.gpuAlbedo.get());
+				assets()->set<assetSchemeIndexRenderTexture, renderTexture>(t.materialName, t.gpuMaterial.get());
+				//assets()->set<assetSchemeIndexRenderTexture, renderTexture>(t.normalName, t.gpuNormal.get());
+				assets()->set<assetSchemeIndexMesh, renderMesh>(t.meshName, t.gpuMesh.get());
+				assets()->set<assetSchemeIndexRenderObject, renderObject>(t.objectName, t.gpuObject.get());
 				t.status = tileStatusEnum::Entity;
 				break;
 			}
@@ -240,11 +240,11 @@ namespace
 	// DISPATCH
 	/////////////////////////////////////////////////////////////////////////////
 
-	holder<textureClass> dispatchTexture(holder<imageClass> &image)
+	holder<renderTexture> dispatchTexture(holder<image> &image)
 	{
 		if (!image)
-			return holder<textureClass>();
-		holder<textureClass> t = newTexture();
+			return holder<renderTexture>();
+		holder<renderTexture> t = newRenderTexture();
 		switch (image->channels())
 		{
 		case 2:
@@ -262,12 +262,12 @@ namespace
 		return t;
 	}
 
-	holder<meshClass> dispatchMesh(std::vector<vertexStruct> &vertices, std::vector<uint32> &indices)
+	holder<renderMesh> dispatchMesh(std::vector<vertexStruct> &vertices, std::vector<uint32> &indices)
 	{
 		if (vertices.size() == 0)
-			return holder<meshClass>();
-		holder<meshClass> m = newMesh();
-		meshHeaderStruct::materialDataStruct material;
+			return holder<renderMesh>();
+		holder<renderMesh> m = newRenderMesh();
+		renderMeshHeader::materialData material;
 		m->setBuffers(numeric_cast<uint32>(vertices.size()), sizeof(vertexStruct), vertices.data(), numeric_cast<uint32>(indices.size()), indices.data(), sizeof(material), &material);
 		m->setPrimitiveType(GL_TRIANGLES);
 		m->setAttribute(CAGE_SHADER_ATTRIB_IN_POSITION, 3, GL_FLOAT, sizeof(vertexStruct), 0);
@@ -279,9 +279,9 @@ namespace
 		return m;
 	}
 
-	holder<objectClass> dispatchObject()
+	holder<renderObject> dispatchObject()
 	{
-		holder<objectClass> o = newObject();
+		holder<renderObject> o = newRenderObject();
 		return o;
 	}
 
@@ -324,8 +324,8 @@ namespace
 
 	tileStruct *generatorChooseTile()
 	{
-		static holder<mutexClass> mut = newMutex();
-		scopeLock<mutexClass> lock(mut);
+		static holder<syncMutex> mut = newSyncMutex();
+		scopeLock<syncMutex> lock(mut);
 		tileStruct *result = nullptr;
 		for (tileStruct &t : tiles)
 		{
@@ -344,7 +344,7 @@ namespace
 	{
 		if (t.cpuMeshVertices.empty())
 			return;
-		t.cpuCollider = newCollider();
+		t.cpuCollider = newCollisionMesh();
 		if (t.cpuMeshIndices.empty())
 		{
 			uint32 trisCount = numeric_cast<uint32>(t.cpuMeshVertices.size() / 3);
@@ -393,7 +393,7 @@ namespace
 
 	class callbacksInitClass
 	{
-		std::vector<holder<threadClass>> generatorThreads;
+		std::vector<holder<threadHandle>> generatorThreads;
 		eventListener<void()> engineUpdateListener;
 		eventListener<void()> engineAssetsListener;
 		eventListener<void()> engineFinalizeListener;

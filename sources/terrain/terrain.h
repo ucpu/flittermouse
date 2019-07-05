@@ -35,6 +35,6 @@ struct vertexStruct
 };
 
 std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesReady);
-void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<imageClass> &albedo, holder<imageClass> &special);
+void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<image> &albedo, holder<image> &special);
 
 #endif // !baseTile_h_dsfg7d8f5

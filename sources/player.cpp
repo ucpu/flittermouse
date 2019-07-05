@@ -2,7 +2,7 @@
 
 #include <cage-core/geometry.h>
 #include <cage-core/entities.h>
-#include <cage-core/collider.h>
+#include <cage-core/collisionMesh.h>
 #include <cage-core/hashString.h>
 #include <cage-core/color.h>
 #include <cage-core/spatial.h>
@@ -26,8 +26,8 @@ namespace
 	void engineUpdate()
 	{
 		uint64 time = currentControlTime();
-		ENGINE_GET_COMPONENT(transform, ct, entities()->get(1));
-		ENGINE_GET_COMPONENT(transform, pt, entities()->get(10));
+		CAGE_COMPONENT_ENGINE(transform, ct, entities()->get(1));
+		CAGE_COMPONENT_ENGINE(transform, pt, entities()->get(10));
 
 		{ // rotate camera
 			quat q = quat(degs(-mouseMoved[1]), degs(-mouseMoved[0]), degs(mouseMoved[2] * 20));
@@ -49,7 +49,7 @@ namespace
 		}
 
 		{ // update camera position
-			ENGINE_GET_COMPONENT(transform, ct, entities()->get(1));
+			CAGE_COMPONENT_ENGINE(transform, ct, entities()->get(1));
 			ct.position = pt.position + ct.orientation * vec3(0, 0.05, 0.2);
 		}
 
@@ -97,34 +97,34 @@ namespace
 		return false;
 	}
 
-	pointStruct centerMouse()
+	ivec2 centerMouse()
 	{
-		pointStruct pt2 = window()->resolution();
+		ivec2 pt2 = window()->resolution();
 		pt2.x /= 2;
 		pt2.y /= 2;
 		window()->mousePosition(pt2);
 		return pt2;
 	}
 
-	bool mousePress(mouseButtonsFlags b, modifiersFlags m, const pointStruct &p)
+	bool mousePress(mouseButtonsFlags b, modifiersFlags m, const ivec2 &p)
 	{
 		if (b == mouseButtonsFlags::Left)
 			centerMouse();
 		return false;
 	}
 
-	bool mouseMove(mouseButtonsFlags b, modifiersFlags m, const pointStruct &p)
+	bool mouseMove(mouseButtonsFlags b, modifiersFlags m, const ivec2 &p)
 	{
 		if (b == mouseButtonsFlags::Left)
 		{
-			pointStruct c = centerMouse();
+			ivec2 c = centerMouse();
 			mouseMoved[0] += p.x - c.x;
 			mouseMoved[1] += p.y - c.y;
 		}
 		return false;
 	}
 
-	bool mouseWheel(sint8 wheel, modifiersFlags m, const pointStruct &p)
+	bool mouseWheel(sint8 wheel, modifiersFlags m, const ivec2 &p)
 	{
 		mouseMoved[2] += wheel;
 		return false;
@@ -142,19 +142,22 @@ namespace
 		windowListeners.mouseWheel.bind<&mouseWheel>();
 
 		{ // the spaceship
-			entityClass *e = entities()->create(10);
-			ENGINE_GET_COMPONENT(render, r, e);
+			entity *e = entities()->create(10);
+			CAGE_COMPONENT_ENGINE(render, r, e);
 			r.object = hashString("flittermouse/player/ship.object");
 		}
 
 		{ // camera
-			entityClass *e = entities()->create(1);
-			ENGINE_GET_COMPONENT(transform, t, e);
-			ENGINE_GET_COMPONENT(camera, c, e);
+			entity *e = entities()->create(1);
+			CAGE_COMPONENT_ENGINE(transform, t, e);
+			CAGE_COMPONENT_ENGINE(camera, c, e);
 			c.near = 0.05;
 			c.far = 100;
-			c.ambientLight = vec3(1);
+			c.ambientLight = vec3(0.01);
 			c.effects = cameraEffectsFlags::CombinedPass;
+			CAGE_COMPONENT_ENGINE(light, l, e);
+			l.lightType = lightTypeEnum::Directional;
+			l.color = vec3(1);
 		}
 	}
 

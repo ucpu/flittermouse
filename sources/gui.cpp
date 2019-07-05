@@ -12,10 +12,10 @@ namespace
 
 	bool engineUpdate()
 	{
-		entityManagerClass *ents = gui()->entities();
+		entityManager *ents = gui()->entities();
 
 		{ // player position
-			GUI_GET_COMPONENT(text, t, ents->get(playerPositionLabel));
+			CAGE_COMPONENT_GUI(text, t, ents->get(playerPositionLabel));
 			t.value = playerPosition;
 		}
 
@@ -24,36 +24,36 @@ namespace
 
 	bool engineInitialize()
 	{
-		entityManagerClass *ents = gui()->entities();
+		entityManager *ents = gui()->entities();
 
-		entityClass *panel = nullptr;
+		entity *panel = nullptr;
 		{ // panel
-			entityClass *wrapper = ents->createUnique();
-			GUI_GET_COMPONENT(scrollbars, sc, wrapper);
+			entity *wrapper = ents->createUnique();
+			CAGE_COMPONENT_GUI(scrollbars, sc, wrapper);
 			panel = ents->createUnique();
-			GUI_GET_COMPONENT(parent, parent, panel);
+			CAGE_COMPONENT_GUI(parent, parent, panel);
 			parent.parent = wrapper->name();
-			GUI_GET_COMPONENT(panel, g, panel);
-			GUI_GET_COMPONENT(layoutTable, lt, panel);
+			CAGE_COMPONENT_GUI(panel, g, panel);
+			CAGE_COMPONENT_GUI(layoutTable, lt, panel);
 		}
 
 		{ // player position
 			{ // label
-				entityClass *e = ents->createUnique();
-				GUI_GET_COMPONENT(parent, p, e);
+				entity *e = ents->createUnique();
+				CAGE_COMPONENT_GUI(parent, p, e);
 				p.parent = panel->name();
 				p.order = 1;
-				GUI_GET_COMPONENT(label, l, e);
-				GUI_GET_COMPONENT(text, t, e);
+				CAGE_COMPONENT_GUI(label, l, e);
+				CAGE_COMPONENT_GUI(text, t, e);
 				t.value = "Position: ";
 			}
 			{ // value
-				entityClass *e = ents->createUnique();
-				GUI_GET_COMPONENT(parent, p, e);
+				entity *e = ents->createUnique();
+				CAGE_COMPONENT_GUI(parent, p, e);
 				p.parent = panel->name();
 				p.order = 2;
-				GUI_GET_COMPONENT(label, l, e);
-				GUI_GET_COMPONENT(text, t, e);
+				CAGE_COMPONENT_GUI(label, l, e);
+				CAGE_COMPONENT_GUI(text, t, e);
 				playerPositionLabel = e->name();
 			}
 		}

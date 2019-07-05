@@ -1,7 +1,7 @@
 #include "terrain.h"
 
 #include <cage-core/geometry.h>
-#include <cage-core/noise.h>
+#include <cage-core/noiseFunction.h>
 #include <cage-core/color.h>
 #include <cage-core/random.h>
 #include <cage-core/image.h>
@@ -16,13 +16,13 @@ namespace
 	const uint32 texelsPerQuad = 10;
 	const real uvBorderFraction = 0.2;
 
-	holder<noiseClass> newClouds(uint32 seed, uint32 octaves)
+	holder<noiseFunction> newClouds(uint32 seed, uint32 octaves)
 	{
-		noiseCreateConfig cfg;
+		noiseFunctionCreateConfig cfg;
 		cfg.octaves = octaves;
 		cfg.type = noiseTypeEnum::Value;
 		cfg.seed = seed;
-		return newNoise(cfg);
+		return newNoiseFunction(cfg);
 	}
 
 	template <class T>
@@ -41,11 +41,11 @@ namespace
 		return rescale(clamp(v, 0.45, 0.55), 0.45, 0.55, 0, 1);
 	}
 
-	holder<noiseClass> densityNoise1 = newClouds(globalSeed + 1, 3);
-	holder<noiseClass> densityNoise2 = newClouds(globalSeed + 2, 3);
-	holder<noiseClass> colorNoise1 = newClouds(globalSeed + 3, 3);
-	holder<noiseClass> colorNoise2 = newClouds(globalSeed + 4, 2);
-	holder<noiseClass> colorNoise3 = newClouds(globalSeed + 5, 4);
+	holder<noiseFunction> densityNoise1 = newClouds(globalSeed + 1, 3);
+	holder<noiseFunction> densityNoise2 = newClouds(globalSeed + 2, 3);
+	holder<noiseFunction> colorNoise1 = newClouds(globalSeed + 3, 3);
+	holder<noiseFunction> colorNoise2 = newClouds(globalSeed + 4, 2);
+	holder<noiseFunction> colorNoise3 = newClouds(globalSeed + 5, 4);
 
 	struct meshGenStruct
 	{
@@ -83,10 +83,10 @@ namespace
 					}
 				}
 			}
-			densityNoise1->evaluate(densities.size(), positions.data(), densities.data());
+			densityNoise1->evaluate(numeric_cast<uint32>(densities.size()), positions.data(), densities.data());
 			for (vec3 &p : positions)
 				p = vec3(p[1], -p[2], p[0]) * (0.13 / 0.2);
-			densityNoise2->evaluate(densities.size(), positions.data(), tmp.data());
+			densityNoise2->evaluate(numeric_cast<uint32>(densities.size()), positions.data(), tmp.data());
 			real *t = tmp.data();
 			for (real &d : densities)
 				d -= *t++;
@@ -187,7 +187,7 @@ namespace
 			}
 		}
 
-		void genTextures(holder<imageClass> &albedo, holder<imageClass> &special)
+		void genTextures(holder<image> &albedo, holder<image> &special)
 		{
 			uint32 quadsCount = numeric_cast<uint32>(quadPositions.size() / 4);
 			uint32 res = quadsPerLine * texelsPerQuad;
@@ -247,7 +247,7 @@ namespace
 				p *= 0.042;
 			std::vector<real> c;
 			c.resize(xs.size());
-			colorNoise3->evaluate(pos.size(), pos.data(), c.data());
+			colorNoise3->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), c.data());
 			std::vector<vec3> albedos;
 			albedos.reserve(pos.size());
 			for (real &u : c)
@@ -263,13 +263,13 @@ namespace
 			vec3 *position = positions.data();
 			for (vec3 &p : pos)
 				p = *position++ * 3;
-			colorNoise1->evaluate(pos.size(), pos.data(), h.data());
+			colorNoise1->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), h.data());
 			std::vector<real> v;
 			v.resize(pos.size());
 			position = positions.data();
 			for (vec3 &p : pos)
 				p = *position++ * 4;
-			colorNoise2->evaluate(pos.size(), pos.data(), v.data());
+			colorNoise2->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), v.data());
 			real *hi = h.data();
 			real *vi = v.data();
 			for (vec3 &albedo : albedos)
@@ -296,7 +296,7 @@ namespace
 	};
 }
 
-void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<imageClass> &albedo, holder<imageClass> &special)
+void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<image> &albedo, holder<image> &special)
 {
 	// generate mesh
 	meshGenStruct generator(tilePos);

@@ -7,8 +7,8 @@
 #include <cage-client/core.h>
 #include <cage-client/engine.h>
 
-groupClass *entitiesToDestroy;
-componentClass *timeoutComponent::component;
+entityGroup *entitiesToDestroy;
+entityComponent *timeoutComponent::component;
 
 timeoutComponent::timeoutComponent() : ttl(0)
 {}
@@ -17,7 +17,7 @@ namespace
 {
 	void engineUpdate()
 	{
-		for (entityClass *e : timeoutComponent::component->entities())
+		for (entity *e : timeoutComponent::component->entities())
 		{
 			GAME_GET_COMPONENT(timeout, t, e);
 			if (t.ttl-- == 0)
