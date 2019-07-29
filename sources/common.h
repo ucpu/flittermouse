@@ -5,6 +5,8 @@
 #include <cage-core/math.h>
 #include <cage-core/log.h>
 
+#include <optick.h>
+
 using namespace cage;
 
 vec3 terrainIntersection(const line &ln);

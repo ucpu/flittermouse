@@ -55,6 +55,7 @@ namespace
 
 std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesReady)
 {
+	OPTICK_EVENT("findNeededTiles");
 	std::set<tilePosStruct> tilesRequests;
 	tilePosStruct pt;
 	pt.x = numeric_cast<sint32>(playerPosition[0] / 64) * 64;
@@ -75,6 +76,6 @@ std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesRead
 			}
 		}
 	}
-	CAGE_LOG(severityEnum::Info, "terrain", string() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
+	//CAGE_LOG(severityEnum::Info, "terrain", string() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
 	return tilesRequests;
 }

@@ -66,6 +66,7 @@ namespace
 
 		void genDensities()
 		{
+			OPTICK_EVENT("genDensities");
 			densities.resize(quadsPerTile * quadsPerTile * quadsPerTile);
 			std::vector<real> tmp;
 			tmp.resize(densities.size());
@@ -94,6 +95,7 @@ namespace
 
 		void genSurface()
 		{
+			OPTICK_EVENT("genSurface");
 			dualmc::DualMC<float> mc;
 			mc.build((float*)densities.data(), quadsPerTile, quadsPerTile, quadsPerTile, 0, true, false, mcVertices, mcIndices);
 		}
@@ -111,6 +113,7 @@ namespace
 
 		void genNormals()
 		{
+			OPTICK_EVENT("genNormals");
 			mcNormals.resize(mcVertices.size());
 			for (dualmc::Quad q : mcIndices)
 			{
@@ -130,6 +133,7 @@ namespace
 
 		void genOutput(std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices)
 		{
+			OPTICK_EVENT("genOutput");
 			CAGE_ASSERT_RUNTIME(meshVertices.empty());
 			CAGE_ASSERT_RUNTIME(meshIndices.empty());
 			meshVertices.reserve(mcIndices.size() * 6 / 4);
@@ -189,6 +193,7 @@ namespace
 
 		void genTextures(holder<image> &albedo, holder<image> &special)
 		{
+			OPTICK_EVENT("genTextures");
 			uint32 quadsCount = numeric_cast<uint32>(quadPositions.size() / 4);
 			uint32 res = quadsPerLine * texelsPerQuad;
 			albedo = newImage();
@@ -298,6 +303,8 @@ namespace
 
 void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<image> &albedo, holder<image> &special)
 {
+	OPTICK_EVENT("terrainGenerate");
+
 	// generate mesh
 	meshGenStruct generator(tilePos);
 	generator.genDensities();

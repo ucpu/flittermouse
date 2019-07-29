@@ -85,6 +85,8 @@ namespace
 
 	void engineUpdate()
 	{
+		OPTICK_EVENT("terrainTiles");
+
 		std::set<tilePosStruct> neededTiles = stopping ? std::set<tilePosStruct>() : findNeededTiles(findReadyTiles());
 		for (tileStruct &t : tiles)
 		{
@@ -194,8 +196,11 @@ namespace
 
 	void engineAssets()
 	{
+		OPTICK_EVENT("terrainAssets");
+
 		if (stopping)
 			engineUpdate();
+
 		for (tileStruct &t : tiles)
 		{
 			if (t.status == tileStatusEnum::Fabricate)
@@ -242,6 +247,7 @@ namespace
 
 	holder<renderTexture> dispatchTexture(holder<image> &image)
 	{
+		OPTICK_EVENT("dispatchTexture");
 		if (!image)
 			return holder<renderTexture>();
 		holder<renderTexture> t = newRenderTexture();
@@ -264,6 +270,7 @@ namespace
 
 	holder<renderMesh> dispatchMesh(std::vector<vertexStruct> &vertices, std::vector<uint32> &indices)
 	{
+		OPTICK_EVENT("dispatchMesh");
 		if (vertices.size() == 0)
 			return holder<renderMesh>();
 		holder<renderMesh> m = newRenderMesh();
@@ -287,7 +294,10 @@ namespace
 
 	void engineDispatch()
 	{
+		OPTICK_EVENT("terrainDispatch");
+
 		CAGE_CHECK_GL_ERROR_DEBUG();
+		bool uploaded = false;
 		for (tileStruct &t : tiles)
 		{
 			switch (t.status)
@@ -306,12 +316,15 @@ namespace
 			} break;
 			case tileStatusEnum::Upload:
 			{
+				if (uploaded)
+					continue; // upload at most one tile per frame
 				t.gpuAlbedo = dispatchTexture(t.cpuAlbedo);
 				t.gpuMaterial = dispatchTexture(t.cpuMaterial);
 				//t.gpuNormal = dispatchTexture(t.cpuNormal);
 				t.gpuMesh = dispatchMesh(t.cpuMeshVertices, t.cpuMeshIndices);
 				t.gpuObject = dispatchObject();
 				t.status = tileStatusEnum::Fabricate;
+				uploaded = true;
 			} break;
 			}
 		}
@@ -342,6 +355,8 @@ namespace
 
 	void generateCollider(tileStruct &t)
 	{
+		OPTICK_EVENT("generateCollider");
+
 		if (t.cpuMeshVertices.empty())
 			return;
 		t.cpuCollider = newCollisionMesh();

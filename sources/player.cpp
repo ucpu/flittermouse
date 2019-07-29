@@ -25,6 +25,8 @@ namespace
 
 	void engineUpdate()
 	{
+		OPTICK_EVENT("player");
+
 		uint64 time = currentControlTime();
 		CAGE_COMPONENT_ENGINE(transform, ct, entities()->get(1));
 		CAGE_COMPONENT_ENGINE(transform, pt, entities()->get(10));
