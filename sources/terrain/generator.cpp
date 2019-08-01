@@ -6,6 +6,7 @@
 #include <cage-core/random.h>
 #include <cage-core/image.h>
 #include <cage-core/enumerate.h>
+#include <cage-client/core.h>
 
 #include "dualmc.h"
 #include "xatlas.h"
@@ -85,6 +86,21 @@ namespace
 	bool inside(const vec2 &b)
 	{
 		return b[0] >= 0 && b[1] >= 0 && b[0] + b[1] <= 1;
+	}
+
+	ivec2 operator + (const ivec2 &a, const ivec2 &b)
+	{
+		return ivec2(a.x + b.x, a.y + b.y);
+	}
+
+	ivec2 operator - (const ivec2 &a, const ivec2 &b)
+	{
+		return ivec2(a.x - b.x, a.y - b.y);
+	}
+
+	ivec2 operator * (const ivec2 &a, float b)
+	{
+		return ivec2(sint32(a.x * b), sint32(a.y * b));
 	}
 
 	holder<noiseFunction> densityNoise1 = newClouds(globalSeed + 1, 3);
@@ -212,7 +228,6 @@ namespace
 
 			{
 				OPTICK_EVENT("AddMesh");
-
 				xatlas::MeshDecl decl;
 				decl.indexCount = meshIndices.size();
 				decl.indexData = meshIndices.data();
@@ -226,22 +241,29 @@ namespace
 			}
 
 			{
-				OPTICK_EVENT("Generate");
-
-				xatlas::ChartOptions chart;
-				xatlas::PackOptions pack;
-				pack.texelsPerUnit = 30;
-				pack.createImage = true;
-				pack.padding = 1;
-				xatlas::Generate(atlas.get(), chart, nullptr, pack);
-
+				{
+					OPTICK_EVENT("ComputeCharts");
+					xatlas::ChartOptions chart;
+					xatlas::ComputeCharts(atlas.get(), chart);
+				}
+				{
+					OPTICK_EVENT("ParameterizeCharts");
+					xatlas::ParameterizeCharts(atlas.get());
+				}
+				{
+					OPTICK_EVENT("PackCharts");
+					xatlas::PackOptions pack;
+					pack.texelsPerUnit = 30;
+					pack.createImage = false;
+					pack.padding = 1;
+					xatlas::PackCharts(atlas.get(), pack);
+				}
 				CAGE_ASSERT_RUNTIME(atlas->meshCount == 1);
 				CAGE_ASSERT_RUNTIME(atlas->atlasCount == 1);
 			}
 
 			{
 				OPTICK_EVENT("apply");
-
 				std::vector<vertexStruct> vs;
 				xatlas::Mesh *m = atlas->meshes;
 				vs.reserve(m->vertexCount);
@@ -264,7 +286,6 @@ namespace
 		void genTextures(holder<image> &albedo, holder<image> &special)
 		{
 			OPTICK_EVENT("genTextures");
-
 			const uint32 w = atlas->width;
 			const uint32 h = atlas->height;
 
@@ -273,38 +294,32 @@ namespace
 			special = newImage();
 			special->empty(w, h, 2);
 
-			std::vector<std::vector<triangle>> triPos;
-			std::vector<std::vector<triangle>> triNorms;
-			std::vector<std::vector<triangle>> triUvs;
+			std::vector<triangle> triPos;
+			std::vector<triangle> triNorms;
+			std::vector<triangle> triUvs;
 			{
 				OPTICK_EVENT("prepTris");
-				triPos.resize(atlas->chartCount);
-				triNorms.resize(atlas->chartCount);
-				triUvs.resize(atlas->chartCount);
-				for (uint32 ch = 0; ch < atlas->chartCount; ch++)
+				const xatlas::Mesh *m = atlas->meshes;
+				const uint32 triCount = m->indexCount / 3;
+				triPos.reserve(triCount);
+				triNorms.reserve(triCount);
+				triUvs.reserve(triCount);
+				for (uint32 triIdx = 0; triIdx < triCount; triIdx++)
 				{
-					const auto &chr = atlas->meshes->chartArray[ch];
-					triPos[ch].reserve(chr.faceCount);
-					triNorms[ch].reserve(chr.faceCount);
-					triUvs[ch].reserve(chr.faceCount);
-					for (uint32 faceIt = 0; faceIt < chr.faceCount; faceIt++)
+					triangle p;
+					triangle n;
+					triangle u;
+					const uint32 *ids = m->indexArray + triIdx * 3;
+					for (uint32 i = 0; i < 3; i++)
 					{
-						const uint32 face = chr.faceArray[faceIt];
-						const uint32 *ids = meshIndices.data() + face * 3;
-						triangle p;
-						triangle n;
-						triangle u;
-						for (uint32 i = 0; i < 3; i++)
-						{
-							const vertexStruct &v = meshVertices[ids[i]];
-							p[i] = l2w(v.position);
-							n[i] = v.normal;
-							u[i] = vec3(v.uv, 0);
-						}
-						triPos[ch].push_back(p);
-						triNorms[ch].push_back(n);
-						triUvs[ch].push_back(u);
+						const vertexStruct &v = meshVertices[ids[i]];
+						p[i] = l2w(v.position);
+						n[i] = v.normal;
+						u[i] = vec3(v.uv, 0);
 					}
+					triPos.push_back(p);
+					triNorms.push_back(n);
+					triUvs.push_back(u);
 				}
 			}
 
@@ -319,93 +334,117 @@ namespace
 				xs.reserve(w * h);
 				ys.reserve(w * h);
 				const vec2 whInv = 1 / vec2(w - 1, h - 1);
-				for (uint32 y = 0; y < h; y++)
+
+				const xatlas::Mesh *m = atlas->meshes;
+				const uint32 triCount = m->indexCount / 3;
+				for (uint32 triIdx = 0; triIdx < triCount; triIdx++)
 				{
-					for (uint32 x = 0; x < w; x++)
+					const uint32 *vertIds = m->indexArray + triIdx * 3;
+					const float *vertUvs[3] = {
+						m->vertexArray[vertIds[0]].uv,
+						m->vertexArray[vertIds[1]].uv,
+						m->vertexArray[vertIds[2]].uv
+					};
+					ivec2 t0 = ivec2(floor(vertUvs[0][0]), floor(vertUvs[0][1]));
+					ivec2 t1 = ivec2(floor(vertUvs[1][0]), floor(vertUvs[1][1]));
+					ivec2 t2 = ivec2(floor(vertUvs[2][0]), floor(vertUvs[2][1]));
+					// inspired by https://github.com/ssloy/tinyrenderer/wiki/Lesson-2:-Triangle-rasterization-and-back-face-culling
+					if (t0.y > t1.y)
+						std::swap(t0, t1);
+					if (t0.y > t2.y)
+						std::swap(t0, t2);
+					if (t1.y > t2.y)
+						std::swap(t1, t2);
+					uint32 totalHeight = t2.y - t0.y;
+					float totalHeightInv = 1.f / totalHeight;
+					for (uint32 i = 0; i < totalHeight; i++)
 					{
-						if (atlas->image[y * w + x] == 0)
-							continue;
-						vec2 uv = vec2(x, y) * whInv;
-						uint32 ch = atlas->image[y * w + x] & 0x1FFFFFFF; //xatlas::kImageChartIndexMask;
-						const uint32 tricnt = numeric_cast<uint32>(triPos[ch].size());
-						for (uint32 i = 0; i < tricnt; i++)
+						bool secondHalf = i > t1.y - t0.y || t1.y == t0.y;
+						uint32 segmentHeight = secondHalf ? t2.y - t1.y : t1.y - t0.y;
+						float alpha = i * totalHeightInv;
+						float beta = (float)(i - (secondHalf ? t1.y - t0.y : 0)) / segmentHeight;
+						ivec2 A = t0 + (t2 - t0) * alpha;
+						ivec2 B = secondHalf ? t1 + (t2 - t1) * beta : t0 + (t1 - t0) * beta;
+						if (A.x > B.x)
+							std::swap(A, B);
+						for (uint32 x = A.x; x <= B.x; x++)
 						{
-							vec2 b = barycoord(triUvs[ch][i], uv);
-							if (!inside(b))
-								continue;
-							positions.push_back(interpolate(triPos[ch][i], b));
-							normals.push_back(normalize(interpolate(triNorms[ch][i], b)));
+							uint32 y = t0.y + i;
+							vec2 uv = vec2(x, y) * whInv;
+							vec2 b = barycoord(triUvs[triIdx], uv);
+							positions.push_back(interpolate(triPos[triIdx], b));
+							normals.push_back(normalize(interpolate(triNorms[triIdx], b)));
 							xs.push_back(x);
 							ys.push_back(y);
-							break;
 						}
 					}
 				}
 			}
 
-			static const vec3 colors[] = {
-				pdnToRgb(240, 1, 45),
-				pdnToRgb(230, 6, 35),
-				pdnToRgb(240, 11, 28),
-				pdnToRgb(232, 27, 21),
-				pdnToRgb(31, 34, 96),
-				pdnToRgb(31, 56, 93),
-				pdnToRgb(26, 68, 80),
-				pdnToRgb(21, 69, 55)
-			};
-
-			std::vector<vec3> pos(positions.begin(), positions.end());
-			for (vec3 &p : pos)
-				p *= 0.042;
-			std::vector<real> c;
-			c.resize(xs.size());
-			colorNoise3->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), c.data());
-			std::vector<vec3> albedos;
-			albedos.reserve(pos.size());
-			for (real &u : c)
 			{
-				u = ((u * 0.5 + 0.5) * 16) % 8;
-				uint32 i = numeric_cast<uint32>(u);
-				real f = sharpEdge(u - i);
-				albedos.push_back(interpolate(colors[i], colors[(i + 1) % 8], f));
-			}
+				OPTICK_EVENT("pixelColors");
+				static const vec3 colors[] = {
+					pdnToRgb(240, 1, 45),
+					pdnToRgb(230, 6, 35),
+					pdnToRgb(240, 11, 28),
+					pdnToRgb(232, 27, 21),
+					pdnToRgb(31, 34, 96),
+					pdnToRgb(31, 56, 93),
+					pdnToRgb(26, 68, 80),
+					pdnToRgb(21, 69, 55)
+				};
 
-			std::vector<real> v1;
-			v1.resize(pos.size());
-			vec3 *position = positions.data();
-			for (vec3 &p : pos)
-				p = *position++ * 3;
-			colorNoise1->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), v1.data());
-			std::vector<real> v2;
-			v2.resize(pos.size());
-			position = positions.data();
-			for (vec3 &p : pos)
-				p = *position++ * 4;
-			colorNoise2->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), v2.data());
-			real *hi = v1.data();
-			real *vi = v2.data();
-			for (vec3 &albedo : albedos)
-			{
-				*hi = (*hi * + 0.5 + 0.5) * 0.5 + 0.25;
-				*vi = *vi * 0.5 + 0.5;
-				vec3 hsv = convertRgbToHsv(albedo) + (vec3(*hi, 1 - *vi, *vi) - 0.5) * 0.1;
-				hsv[0] = (hsv[0] + 1) % 1;
-				albedo = convertHsvToRgb(clamp(hsv, vec3(0), vec3(1)));
-				hi++;
-				vi++;
-			}
+				std::vector<vec3> pos(positions.begin(), positions.end());
+				for (vec3 &p : pos)
+					p *= 0.042;
+				std::vector<real> c;
+				c.resize(xs.size());
+				colorNoise3->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), c.data());
+				std::vector<vec3> albedos;
+				albedos.reserve(pos.size());
+				for (real &u : c)
+				{
+					u = ((u * 0.5 + 0.5) * 16) % 8;
+					uint32 i = numeric_cast<uint32>(u);
+					real f = sharpEdge(u - i);
+					albedos.push_back(interpolate(colors[i], colors[(i + 1) % 8], f));
+				}
 
-			uint32 *xi = xs.data();
-			uint32 *yi = ys.data();
-			for (vec3 &alb : albedos)
-			{
-				albedo->set(*xi, *yi, alb);
-				special->set(*xi, *yi, vec2(0.8, 0.002));
-				xi++;
-				yi++;
-			}
+				std::vector<real> v1;
+				v1.resize(pos.size());
+				vec3 *position = positions.data();
+				for (vec3 &p : pos)
+					p = *position++ * 3;
+				colorNoise1->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), v1.data());
+				std::vector<real> v2;
+				v2.resize(pos.size());
+				position = positions.data();
+				for (vec3 &p : pos)
+					p = *position++ * 4;
+				colorNoise2->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), v2.data());
+				real *hi = v1.data();
+				real *vi = v2.data();
+				for (vec3 &albedo : albedos)
+				{
+					*hi = (*hi * +0.5 + 0.5) * 0.5 + 0.25;
+					*vi = *vi * 0.5 + 0.5;
+					vec3 hsv = convertRgbToHsv(albedo) + (vec3(*hi, 1 - *vi, *vi) - 0.5) * 0.1;
+					hsv[0] = (hsv[0] + 1) % 1;
+					albedo = convertHsvToRgb(clamp(hsv, vec3(0), vec3(1)));
+					hi++;
+					vi++;
+				}
 
-			//albedo->verticalFlip();
+				uint32 *xi = xs.data();
+				uint32 *yi = ys.data();
+				for (vec3 &alb : albedos)
+				{
+					albedo->set(*xi, *yi, alb);
+					special->set(*xi, *yi, vec2(0.8, 0.002));
+					xi++;
+					yi++;
+				}
+			}
 		}
 	};
 
@@ -433,8 +472,6 @@ namespace
 void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<image> &albedo, holder<image> &special)
 {
 	OPTICK_EVENT("terrainGenerate");
-
-	// generate mesh
 	meshGenStruct generator(tilePos, meshVertices, meshIndices);
 	generator.genDensities();
 	generator.genSurface();
