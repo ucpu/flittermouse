@@ -362,9 +362,8 @@ namespace
 							meshIndices.push_back(ids[2]);
 							continue;
 						}
-						// todo is this an issue in the engine?
-						//if (!intersects(triangle(a, b, c), clipBox))
-						//	continue; // triangle fully outside
+						if (!intersects(triangle(a, b, c), clipBox))
+							continue; // triangle fully outside
 					}
 					tmp.push_back(ids[0]);
 					tmp.push_back(ids[1]);
