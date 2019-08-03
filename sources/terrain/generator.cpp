@@ -12,6 +12,7 @@
 #include "xatlas.h"
 
 #include <cstdarg>
+#include <algorithm>
 
 namespace
 {
@@ -103,6 +104,13 @@ namespace
 		return ivec2(sint32(a.x * b), sint32(a.y * b));
 	}
 
+	template<class T>
+	void turnLeft(T &a, T &b, T &c)
+	{
+		std::swap(a, b); // bac
+		std::swap(b, c); // bca
+	}
+
 	holder<noiseFunction> densityNoise1 = newClouds(globalSeed + 1, 3);
 	holder<noiseFunction> densityNoise2 = newClouds(globalSeed + 2, 3);
 	holder<noiseFunction> colorNoise1 = newClouds(globalSeed + 3, 3);
@@ -116,7 +124,6 @@ namespace
 		std::vector<real> densities;
 		std::vector<dualmc::Vertex> mcVertices;
 		std::vector<dualmc::Quad> mcIndices;
-		std::vector<vec3> mcNormals;
 		std::vector<vertexStruct> &meshVertices;
 		std::vector<uint32> &meshIndices;
 		holder<xatlas::Atlas> atlas;
@@ -172,26 +179,7 @@ namespace
 			OPTICK_EVENT("genSurface");
 			dualmc::DualMC<float> mc;
 			mc.build((float*)densities.data(), quadsPerTile, quadsPerTile, quadsPerTile, 0, true, false, mcVertices, mcIndices);
-		}
-
-		void genNormals()
-		{
-			OPTICK_EVENT("genNormals");
-			mcNormals.resize(mcVertices.size());
-			for (dualmc::Quad q : mcIndices)
-			{
-				vec3 p[4] = {
-					m2l(mcVertices[q.i0]),
-					m2l(mcVertices[q.i1]),
-					m2l(mcVertices[q.i2]),
-					m2l(mcVertices[q.i3])
-				};
-				vec3 n = cross(p[1] - p[0], p[3] - p[0]).normalize();
-				for (uint32 i : { q.i0, q.i1, q.i2, q.i3 })
-					mcNormals[i] += n;
-			}
-			for (vec3 &n : mcNormals)
-				n = n.normalize();
+			std::vector<real>().swap(densities);
 		}
 
 		void genTriangles()
@@ -200,11 +188,10 @@ namespace
 			CAGE_ASSERT_RUNTIME(meshVertices.empty());
 			CAGE_ASSERT_RUNTIME(meshIndices.empty());
 			meshVertices.reserve(mcVertices.size());
-			for (auto it : enumerate(mcVertices))
+			for (const auto &it : mcVertices)
 			{
 				vertexStruct v;
-				v.position = m2l(*it);
-				v.normal = mcNormals[it.cnt];
+				v.position = m2l(it);
 				meshVertices.push_back(v);
 			}
 			meshIndices.reserve(mcIndices.size() * 6 / 4);
@@ -218,6 +205,208 @@ namespace
 				static const int second[6] = { 1,2,3, 1,3,0 };
 				for (uint32 i : (which ? first : second))
 					meshIndices.push_back(is[i]);
+				vec3 n;
+				{
+					vec3 a = meshVertices[is[0]].position;
+					vec3 b = meshVertices[is[1]].position;
+					vec3 c = meshVertices[is[2]].position;
+					n = normalize(cross(b - a, c - a));
+				}
+				for (uint32 i : is)
+					meshVertices[i].normal += n;
+			}
+			for (auto &it : meshVertices)
+				it.normal = normalize(it.normal);
+			std::vector<dualmc::Vertex>().swap(mcVertices);
+			std::vector<dualmc::Quad>().swap(mcIndices);
+		}
+
+		uint32 clipAddPoint(uint32 ai, uint32 bi, uint32 axis, real value)
+		{
+			vec3 a = meshVertices[ai].position;
+			vec3 b = meshVertices[bi].position;
+			real pu = (value - a[axis]) / (b[axis] - a[axis]);
+			CAGE_ASSERT_RUNTIME(pu >= 0 && pu <= 1);
+			vertexStruct v;
+			v.position = interpolate(a, b, pu);
+			v.normal = normalize(interpolate(meshVertices[ai].normal, meshVertices[bi].normal, pu));
+			uint32 res = numeric_cast<uint32>(meshVertices.size());
+			meshVertices.push_back(v);
+			return res;
+		}
+
+		void clipTriangles(const std::vector<uint32> &in, std::vector<uint32> &out, uint32 axis, real value, bool side)
+		{
+			CAGE_ASSERT_RUNTIME((in.size() % 3) == 0);
+			CAGE_ASSERT_RUNTIME(out.size() == 0);
+			const uint32 tris = numeric_cast<uint32>(in.size() / 3);
+			for (uint32 tri = 0; tri < tris; tri++)
+			{
+				uint32 ids[3] = { in[tri * 3 + 0], in[tri * 3 + 1], in[tri * 3 + 2]};
+				vec3 a = meshVertices[ids[0]].position;
+				vec3 b = meshVertices[ids[1]].position;
+				vec3 c = meshVertices[ids[2]].position;
+				bool as = a[axis] > value;
+				bool bs = b[axis] > value;
+				bool cs = c[axis] > value;
+				uint32 m = as + bs + cs;
+				if ((m == 0 && side) || (m == 3 && !side))
+				{
+					// all passes
+					out.push_back(ids[0]);
+					out.push_back(ids[1]);
+					out.push_back(ids[2]);
+					continue;
+				}
+				if ((m == 0 && !side) || (m == 3 && side))
+				{
+					// all rejected
+					continue;
+				}
+				while (as || (as == bs))
+				{
+					turnLeft(ids[0], ids[1], ids[2]);
+					turnLeft(a, b, c);
+					turnLeft(as, bs, cs);
+				}
+				CAGE_ASSERT_RUNTIME(!as && bs, as, bs, cs);
+				uint32 pi = clipAddPoint(ids[0], ids[1], axis, value);
+				if (m == 1)
+				{
+					CAGE_ASSERT_RUNTIME(!cs);
+					/*
+					 *         |
+					 * a +-------+ b
+					 *    \    |/
+					 *     \   /
+					 *      \ /|
+					 *     c + |
+					 */
+					uint32 qi = clipAddPoint(ids[1], ids[2], axis, value);
+					if (side)
+					{
+						out.push_back(ids[0]);
+						out.push_back(pi);
+						out.push_back(qi);
+
+						out.push_back(ids[0]);
+						out.push_back(qi);
+						out.push_back(ids[2]);
+					}
+					else
+					{
+						out.push_back(pi);
+						out.push_back(ids[1]);
+						out.push_back(qi);
+					}
+				}
+				else if (m == 2)
+				{
+					CAGE_ASSERT_RUNTIME(cs);
+					/*
+					 *     |
+					 * a +-------+ b
+					 *    \|    /
+					 *     \   /
+					 *     |\ /
+					 *     | + c
+					 */
+					uint32 qi = clipAddPoint(ids[0], ids[2], axis, value);
+					if (side)
+					{
+						out.push_back(ids[0]);
+						out.push_back(pi);
+						out.push_back(qi);
+					}
+					else
+					{
+						out.push_back(pi);
+						out.push_back(ids[1]);
+						out.push_back(qi);
+
+						out.push_back(qi);
+						out.push_back(ids[1]);
+						out.push_back(ids[2]);
+					}
+				}
+				else
+				{
+					CAGE_ASSERT_RUNTIME(false, "invalid m");
+				}
+			}
+		}
+
+		void clipMesh()
+		{
+			OPTICK_EVENT("clipMesh");
+			{
+				const aabb clipBox = aabb(vec3(-1), vec3(1));
+				const vec3 clipBoxArr[2] = { clipBox.a, clipBox.b };
+				std::vector<uint32> sourceIndices;
+				sourceIndices.reserve(meshIndices.size());
+				sourceIndices.swap(meshIndices);
+				std::vector<uint32> tmp, tmp2;
+				const uint32 tris = numeric_cast<uint32>(sourceIndices.size() / 3);
+				for (uint32 tri = 0; tri < tris; tri++)
+				{
+					const uint32 *ids = sourceIndices.data() + tri * 3;
+					{
+						const vec3 &a = meshVertices[ids[0]].position;
+						const vec3 &b = meshVertices[ids[1]].position;
+						const vec3 &c = meshVertices[ids[2]].position;
+						if (intersects(a, clipBox) && intersects(b, clipBox) && intersects(c, clipBox))
+						{
+							// triangle fully inside the box
+							meshIndices.push_back(ids[0]);
+							meshIndices.push_back(ids[1]);
+							meshIndices.push_back(ids[2]);
+							continue;
+						}
+						// todo is this an issue in the engine?
+						//if (!intersects(triangle(a, b, c), clipBox))
+						//	continue; // triangle fully outside
+					}
+					tmp.push_back(ids[0]);
+					tmp.push_back(ids[1]);
+					tmp.push_back(ids[2]);
+					for (uint32 axis = 0; axis < 3; axis++)
+					{
+						for (uint32 side = 0; side < 2; side++)
+						{
+							clipTriangles(tmp, tmp2, axis, clipBoxArr[side][axis], side);
+							tmp.swap(tmp2);
+							tmp2.clear();
+						}
+					}
+					CAGE_ASSERT_RUNTIME((tmp.size() % 3) == 0);
+					for (uint32 i : tmp)
+						meshIndices.push_back(i);
+					tmp.clear();
+				}
+			}
+
+			{ // filter vertices
+				std::vector<bool> used;
+				used.resize(meshVertices.size());
+				for (uint32 i : meshIndices)
+					used[i] = true;
+				{
+					uint32 i = 0;
+					meshVertices.erase(std::remove_if(meshVertices.begin(), meshVertices.end(), [&](const auto &) {
+						return !used[i++];
+						}), meshVertices.end());
+				}
+				std::vector<uint32> indices;
+				indices.reserve(meshIndices.size());
+				uint32 c = 0;
+				for (bool u : used)
+				{
+					indices.push_back(c);
+					if (u)
+						c++;
+				}
+				for (uint32 &it : meshIndices)
+					it = indices[it];
 			}
 		}
 
@@ -229,10 +418,10 @@ namespace
 			{
 				OPTICK_EVENT("AddMesh");
 				xatlas::MeshDecl decl;
-				decl.indexCount = meshIndices.size();
+				decl.indexCount = numeric_cast<uint32>(meshIndices.size());
 				decl.indexData = meshIndices.data();
 				decl.indexFormat = xatlas::IndexFormat::UInt32;
-				decl.vertexCount = meshVertices.size();
+				decl.vertexCount = numeric_cast<uint32>(meshVertices.size());
 				decl.vertexPositionData = &meshVertices[0].position;
 				decl.vertexNormalData = &meshVertices[0].normal;
 				decl.vertexPositionStride = sizeof(vertexStruct);
@@ -254,8 +443,7 @@ namespace
 					OPTICK_EVENT("PackCharts");
 					xatlas::PackOptions pack;
 					pack.texelsPerUnit = 30;
-					pack.createImage = false;
-					pack.padding = 1;
+					pack.padding = 2;
 					xatlas::PackCharts(atlas.get(), pack);
 				}
 				CAGE_ASSERT_RUNTIME(atlas->meshCount == 1);
@@ -286,8 +474,9 @@ namespace
 		void genTextures(holder<image> &albedo, holder<image> &special)
 		{
 			OPTICK_EVENT("genTextures");
-			const uint32 w = atlas->width;
-			const uint32 h = atlas->height;
+			static const uint32 textureScale = 2;
+			const uint32 w = atlas->width * textureScale;
+			const uint32 h = atlas->height * textureScale;
 
 			albedo = newImage();
 			albedo->empty(w, h, 3);
@@ -345,9 +534,9 @@ namespace
 						m->vertexArray[vertIds[1]].uv,
 						m->vertexArray[vertIds[2]].uv
 					};
-					ivec2 t0 = ivec2(floor(vertUvs[0][0]), floor(vertUvs[0][1]));
-					ivec2 t1 = ivec2(floor(vertUvs[1][0]), floor(vertUvs[1][1]));
-					ivec2 t2 = ivec2(floor(vertUvs[2][0]), floor(vertUvs[2][1]));
+					ivec2 t0 = ivec2(sint32(vertUvs[0][0] * textureScale), sint32(vertUvs[0][1] * textureScale));
+					ivec2 t1 = ivec2(sint32(vertUvs[1][0] * textureScale), sint32(vertUvs[1][1] * textureScale));
+					ivec2 t2 = ivec2(sint32(vertUvs[2][0] * textureScale), sint32(vertUvs[2][1] * textureScale));
 					// inspired by https://github.com/ssloy/tinyrenderer/wiki/Lesson-2:-Triangle-rasterization-and-back-face-culling
 					if (t0.y > t1.y)
 						std::swap(t0, t1);
@@ -355,9 +544,9 @@ namespace
 						std::swap(t0, t2);
 					if (t1.y > t2.y)
 						std::swap(t1, t2);
-					uint32 totalHeight = t2.y - t0.y;
+					sint32 totalHeight = t2.y - t0.y;
 					float totalHeightInv = 1.f / totalHeight;
-					for (uint32 i = 0; i < totalHeight; i++)
+					for (sint32 i = 0; i < totalHeight; i++)
 					{
 						bool secondHalf = i > t1.y - t0.y || t1.y == t0.y;
 						uint32 segmentHeight = secondHalf ? t2.y - t1.y : t1.y - t0.y;
@@ -367,9 +556,9 @@ namespace
 						ivec2 B = secondHalf ? t1 + (t2 - t1) * beta : t0 + (t1 - t0) * beta;
 						if (A.x > B.x)
 							std::swap(A, B);
-						for (uint32 x = A.x; x <= B.x; x++)
+						for (sint32 x = A.x; x <= B.x; x++)
 						{
-							uint32 y = t0.y + i;
+							sint32 y = t0.y + i;
 							vec2 uv = vec2(x, y) * whInv;
 							vec2 b = barycoord(triUvs[triIdx], uv);
 							positions.push_back(interpolate(triPos[triIdx], b));
@@ -481,8 +670,10 @@ void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &me
 		CAGE_ASSERT_RUNTIME(meshIndices.empty());
 		return;
 	}
-	generator.genNormals();
 	generator.genTriangles();
+	generator.clipMesh();
+	if (generator.meshIndices.size() == 0)
+		return;
 	generator.genUvs();
 	generator.genTextures(albedo, special);
 	CAGE_LOG_DEBUG(severityEnum::Info, "generator", string() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
