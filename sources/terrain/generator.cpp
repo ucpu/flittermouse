@@ -20,18 +20,18 @@ namespace
 
 	const uint32 quadsPerTile = 12;
 
-	void destroyAtlas(void *ptr)
+	inline void destroyAtlas(void *ptr)
 	{
 		xatlas::Destroy((xatlas::Atlas*)ptr);
 	}
 
-	holder<xatlas::Atlas> newAtlas()
+	inline holder<xatlas::Atlas> newAtlas()
 	{
 		xatlas::Atlas *a = xatlas::Create();
 		return holder<xatlas::Atlas>(a, a, delegate<void(void*)>().bind<&destroyAtlas>());
 	}
 
-	holder<noiseFunction> newClouds(uint32 seed, uint32 octaves)
+	inline holder<noiseFunction> newClouds(uint32 seed, uint32 octaves)
 	{
 		noiseFunctionCreateConfig cfg;
 		cfg.octaves = octaves;
@@ -41,22 +41,22 @@ namespace
 	}
 
 	template <class T>
-	T rescale(const T &v, real ia, real ib, real oa, real ob)
+	inline T rescale(const T &v, real ia, real ib, real oa, real ob)
 	{
 		return (v - ia) / (ib - ia) * (ob - oa) + oa;
 	}
 
-	vec3 pdnToRgb(real h, real s, real v)
+	inline vec3 pdnToRgb(real h, real s, real v)
 	{
 		return convertHsvToRgb(vec3(h / 360, s / 100, v / 100));
 	}
 
-	real sharpEdge(real v)
+	inline real sharpEdge(real v)
 	{
 		return rescale(clamp(v, 0.45, 0.55), 0.45, 0.55, 0, 1);
 	}
 
-	vec2 barycoord(const triangle &t, const vec2 &p)
+	inline vec2 barycoord(const triangle &t, const vec2 &p)
 	{
 		vec2 a = vec2(t[0]);
 		vec2 b = vec2(t[1]);
@@ -76,7 +76,7 @@ namespace
 		return vec2(u, v);
 	}
 
-	vec3 interpolate(const triangle &t, const vec2 &p)
+	inline vec3 interpolate(const triangle &t, const vec2 &p)
 	{
 		vec3 a = t[0];
 		vec3 b = t[1];
@@ -84,32 +84,37 @@ namespace
 		return p[0] * a + p[1] * b + (1 - p[0] - p[1]) * c;
 	}
 
-	bool inside(const vec2 &b)
+	inline bool inside(const vec2 &b)
 	{
 		return b[0] >= 0 && b[1] >= 0 && b[0] + b[1] <= 1;
 	}
 
-	ivec2 operator + (const ivec2 &a, const ivec2 &b)
+	inline ivec2 operator + (const ivec2 &a, const ivec2 &b)
 	{
 		return ivec2(a.x + b.x, a.y + b.y);
 	}
 
-	ivec2 operator - (const ivec2 &a, const ivec2 &b)
+	inline ivec2 operator - (const ivec2 &a, const ivec2 &b)
 	{
 		return ivec2(a.x - b.x, a.y - b.y);
 	}
 
-	ivec2 operator * (const ivec2 &a, float b)
+	inline ivec2 operator * (const ivec2 &a, float b)
 	{
 		return ivec2(sint32(a.x * b), sint32(a.y * b));
 	}
 
 	template<class T>
-	void turnLeft(T &a, T &b, T &c)
+	inline void turnLeft(T &a, T &b, T &c)
 	{
 		std::swap(a, b); // bac
 		std::swap(b, c); // bca
 	}
+
+	inline void get(holder<image> &img, uint32 x, uint32 y, real &result) { result = img->get1(x, y); }
+	inline void get(holder<image> &img, uint32 x, uint32 y, vec2 &result) { result = img->get2(x, y); }
+	inline void get(holder<image> &img, uint32 x, uint32 y, vec3 &result) { result = img->get3(x, y); }
+	inline void get(holder<image> &img, uint32 x, uint32 y, vec4 &result) { result = img->get4(x, y); }
 
 	holder<noiseFunction> densityNoise1 = newClouds(globalSeed + 1, 3);
 	holder<noiseFunction> densityNoise2 = newClouds(globalSeed + 2, 3);
@@ -199,7 +204,7 @@ namespace
 			{
 				const uint32 is[4] = { q.i0, q.i1, q.i2, q.i3 };
 #define P(I) meshVertices[is[I]].position
-				bool which = P(0).squaredDistance(P(2)) < P(1).squaredDistance(P(3)); // split the quad by shorter diagonal
+				bool which = squaredDistance(P(0), P(2)) < squaredDistance(P(1), P(3)); // split the quad by shorter diagonal
 #undef P
 				static const int first[6] = { 0,1,2, 0,2,3 };
 				static const int second[6] = { 1,2,3, 1,3,0 };
@@ -443,6 +448,8 @@ namespace
 					xatlas::PackOptions pack;
 					pack.texelsPerUnit = 30;
 					pack.padding = 2;
+					pack.bilinear = true;
+					pack.blockAlign = true;
 					xatlas::PackCharts(atlas.get(), pack);
 				}
 				CAGE_ASSERT_RUNTIME(atlas->meshCount == 1);
@@ -634,6 +641,68 @@ namespace
 				}
 			}
 		}
+
+		template<class T>
+		void inpaintProcess(holder<image> &src, holder<image> &dst)
+		{
+			uint32 w = src->width();
+			uint32 h = src->height();
+			for (uint32 y = 0; y < h; y++)
+			{
+				for (uint32 x = 0; x < w; x++)
+				{
+					T m;
+					get(src, x, y, m);
+					if (m == T())
+					{
+						uint32 cnt = 0;
+						const sint32 k = 3;
+						uint32 sy = numeric_cast<uint32>(clamp(sint32(y) - k, 0, sint32(h) - 1));
+						uint32 ey = numeric_cast<uint32>(clamp(sint32(y) + k, 0, sint32(h) - 1));
+						uint32 sx = numeric_cast<uint32>(clamp(sint32(x) - k, 0, sint32(w) - 1));
+						uint32 ex = numeric_cast<uint32>(clamp(sint32(x) + k, 0, sint32(w) - 1));
+						T a;
+						for (uint32 yy = sy; yy <= ey; yy++)
+						{
+							for (uint32 xx = sx; xx <= ex; xx++)
+							{
+								get(src, xx, yy, a);
+								if (a != T())
+								{
+									m += a;
+									cnt++;
+								}
+							}
+						}
+						if (cnt > 0)
+							dst->set(x, y, m / cnt);
+					}
+					else
+						dst->set(x, y, m);
+				}
+			}
+		}
+
+		void inpaint(holder<image> &img)
+		{
+			if (!img)
+				return;
+
+			OPTICK_EVENT("inpaint");
+			uint32 w = img->width();
+			uint32 h = img->height();
+			uint32 c = img->channels();
+			holder<image> tmp = newImage();
+			tmp->empty(w, h, c, img->bytesPerChannel());
+			switch (c)
+			{
+			case 1: inpaintProcess<real>(img, tmp); break;
+			case 2: inpaintProcess<vec2>(img, tmp); break;
+			case 3: inpaintProcess<vec3>(img, tmp); break;
+			case 4: inpaintProcess<vec4>(img, tmp); break;
+			}
+			std::swap(img, tmp);
+		}
 	};
 
 	int xAtlasPrint(const char *format, ...)
@@ -675,5 +744,7 @@ void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &me
 		return;
 	generator.genUvs();
 	generator.genTextures(albedo, special);
+	generator.inpaint(albedo);
+	generator.inpaint(special);
 	CAGE_LOG_DEBUG(severityEnum::Info, "generator", string() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
 }
