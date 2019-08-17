@@ -143,8 +143,8 @@ namespace
 			}
 			if (t.entity)
 			{
-				CAGE_ASSERT_RUNTIME(t.status == tileStatusEnum::Ready);
-				CAGE_ASSERT_RUNTIME(!!t.cpuCollider);
+				CAGE_ASSERT(t.status == tileStatusEnum::Ready);
+				CAGE_ASSERT(!!t.cpuCollider);
 				if (t.pos.visible != visible)
 				{
 					if (visible)

@@ -190,8 +190,8 @@ namespace
 		void genTriangles()
 		{
 			OPTICK_EVENT("genTriangles");
-			CAGE_ASSERT_RUNTIME(meshVertices.empty());
-			CAGE_ASSERT_RUNTIME(meshIndices.empty());
+			CAGE_ASSERT(meshVertices.empty());
+			CAGE_ASSERT(meshIndices.empty());
 			meshVertices.reserve(mcVertices.size());
 			for (const auto &it : mcVertices)
 			{
@@ -231,7 +231,7 @@ namespace
 			vec3 a = meshVertices[ai].position;
 			vec3 b = meshVertices[bi].position;
 			real pu = (value - a[axis]) / (b[axis] - a[axis]);
-			CAGE_ASSERT_RUNTIME(pu >= 0 && pu <= 1);
+			CAGE_ASSERT(pu >= 0 && pu <= 1);
 			vertexStruct v;
 			v.position = interpolate(a, b, pu);
 			v.normal = normalize(interpolate(meshVertices[ai].normal, meshVertices[bi].normal, pu));
@@ -242,8 +242,8 @@ namespace
 
 		void clipTriangles(const std::vector<uint32> &in, std::vector<uint32> &out, uint32 axis, real value, bool side)
 		{
-			CAGE_ASSERT_RUNTIME((in.size() % 3) == 0);
-			CAGE_ASSERT_RUNTIME(out.size() == 0);
+			CAGE_ASSERT((in.size() % 3) == 0);
+			CAGE_ASSERT(out.size() == 0);
 			const uint32 tris = numeric_cast<uint32>(in.size() / 3);
 			for (uint32 tri = 0; tri < tris; tri++)
 			{
@@ -274,11 +274,11 @@ namespace
 					turnLeft(a, b, c);
 					turnLeft(as, bs, cs);
 				}
-				CAGE_ASSERT_RUNTIME(!as && bs, as, bs, cs);
+				CAGE_ASSERT(!as && bs, as, bs, cs);
 				uint32 pi = clipAddPoint(ids[0], ids[1], axis, value);
 				if (m == 1)
 				{
-					CAGE_ASSERT_RUNTIME(!cs);
+					CAGE_ASSERT(!cs);
 					/*
 					 *         |
 					 * a +-------+ b
@@ -307,7 +307,7 @@ namespace
 				}
 				else if (m == 2)
 				{
-					CAGE_ASSERT_RUNTIME(cs);
+					CAGE_ASSERT(cs);
 					/*
 					 *     |
 					 * a +-------+ b
@@ -336,7 +336,7 @@ namespace
 				}
 				else
 				{
-					CAGE_ASSERT_RUNTIME(false, "invalid m");
+					CAGE_ASSERT(false, "invalid m");
 				}
 			}
 		}
@@ -382,7 +382,7 @@ namespace
 							tmp2.clear();
 						}
 					}
-					CAGE_ASSERT_RUNTIME((tmp.size() % 3) == 0);
+					CAGE_ASSERT((tmp.size() % 3) == 0);
 					for (uint32 i : tmp)
 						meshIndices.push_back(i);
 					tmp.clear();
@@ -452,8 +452,8 @@ namespace
 					pack.blockAlign = true;
 					xatlas::PackCharts(atlas.get(), pack);
 				}
-				CAGE_ASSERT_RUNTIME(atlas->meshCount == 1);
-				CAGE_ASSERT_RUNTIME(atlas->atlasCount == 1);
+				CAGE_ASSERT(atlas->meshCount == 1);
+				CAGE_ASSERT(atlas->atlasCount == 1);
 			}
 
 			{
@@ -734,8 +734,8 @@ void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &me
 	generator.genSurface();
 	if (generator.mcIndices.size() == 0)
 	{
-		CAGE_ASSERT_RUNTIME(meshVertices.empty());
-		CAGE_ASSERT_RUNTIME(meshIndices.empty());
+		CAGE_ASSERT(meshVertices.empty());
+		CAGE_ASSERT(meshIndices.empty());
 		return;
 	}
 	generator.genTriangles();
