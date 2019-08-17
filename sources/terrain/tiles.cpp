@@ -49,7 +49,7 @@ namespace
 		//holder<image> cpuNormal;
 		holder<renderObject> gpuObject;
 		tilePosStruct pos;
-		entity *entity;
+		entity *entity_;
 		uint32 meshName;
 		uint32 albedoName;
 		uint32 materialName;
@@ -109,12 +109,12 @@ namespace
 				if (t.cpuCollider)
 				{
 					t.cpuCollider.clear();
-					t.entity->destroy();
-					t.entity = nullptr;
+					t.entity_->destroy();
+					t.entity_ = nullptr;
 				}
 				t.status = tileStatusEnum::Defabricate;
 			}
-			// create entity
+			// create entity_
 			else if (t.status == tileStatusEnum::Entity)
 			{
 				if (t.cpuCollider)
@@ -133,15 +133,15 @@ namespace
 						uint32 meshNames[1] = { t.meshName };
 						t.gpuObject->setLods(1, 1, thresholds, meshIndices, meshNames);
 					}
-					{ // create the entity
-						t.entity = entities()->createAnonymous();
-						CAGE_COMPONENT_ENGINE(transform, tr, t.entity);
+					{ // create the entity_
+						t.entity_ = entities()->createAnonymous();
+						CAGE_COMPONENT_ENGINE(transform, tr, t.entity_);
 						tr = t.pos.getTransform();
 					}
 				}
 				t.status = tileStatusEnum::Ready;
 			}
-			if (t.entity)
+			if (t.entity_)
 			{
 				CAGE_ASSERT(t.status == tileStatusEnum::Ready);
 				CAGE_ASSERT(!!t.cpuCollider);
@@ -150,13 +150,13 @@ namespace
 					if (visible)
 					{
 						terrainAddCollider(t.objectName, t.cpuCollider.get(), t.pos.getTransform());
-						CAGE_COMPONENT_ENGINE(render, r, t.entity);
+						CAGE_COMPONENT_ENGINE(render, r, t.entity_);
 						r.object = t.objectName;
 					}
 					else
 					{
 						terrainRemoveCollider(t.objectName);
-						t.entity->remove(renderComponent::component);
+						t.entity_->remove(renderComponent::component);
 					}
 					t.pos.visible = visible;
 				}
@@ -424,7 +424,7 @@ namespace
 			engineFinalizeListener.bind<&engineFinalize>();
 			engineDispatchListener.attach(graphicsDispatchThread().render);
 			engineDispatchListener.bind<&engineDispatch>();
-			
+
 			uint32 cpuCount = max(processorsCount(), 2u) - 1;
 			for (uint32 i = 0; i < cpuCount; i++)
 				generatorThreads.push_back(newThread(delegate<void()>().bind<&generatorEntry>(), string() + "generator " + i));
