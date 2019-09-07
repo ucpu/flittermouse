@@ -7,10 +7,6 @@
 
 #include "../common.h"
 
-//const real tileLength = 10; // real world size of a tile (in 1 dimension) (at the coarsest level)
-//const real distanceToLoadTile = tileLength * 5;
-//const real distanceToUnloadTile = tileLength * 6;
-
 struct tilePosStruct
 {
 	sint32 x, y, z; // center at the finest level

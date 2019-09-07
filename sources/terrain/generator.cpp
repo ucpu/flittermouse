@@ -204,7 +204,7 @@ namespace
 			{
 				const uint32 is[4] = { q.i0, q.i1, q.i2, q.i3 };
 #define P(I) meshVertices[is[I]].position
-				bool which = squaredDistance(P(0), P(2)) < squaredDistance(P(1), P(3)); // split the quad by shorter diagonal
+				bool which = distanceSquared(P(0), P(2)) < distanceSquared(P(1), P(3)); // split the quad by shorter diagonal
 #undef P
 				static const int first[6] = { 0,1,2, 0,2,3 };
 				static const int second[6] = { 1,2,3, 1,3,0 };
@@ -656,11 +656,10 @@ namespace
 					if (m == T())
 					{
 						uint32 cnt = 0;
-						const sint32 k = 3;
-						uint32 sy = numeric_cast<uint32>(clamp(sint32(y) - k, 0, sint32(h) - 1));
-						uint32 ey = numeric_cast<uint32>(clamp(sint32(y) + k, 0, sint32(h) - 1));
-						uint32 sx = numeric_cast<uint32>(clamp(sint32(x) - k, 0, sint32(w) - 1));
-						uint32 ex = numeric_cast<uint32>(clamp(sint32(x) + k, 0, sint32(w) - 1));
+						uint32 sy = numeric_cast<uint32>(clamp(sint32(y) - 1, 0, sint32(h) - 1));
+						uint32 ey = numeric_cast<uint32>(clamp(sint32(y) + 1, 0, sint32(h) - 1));
+						uint32 sx = numeric_cast<uint32>(clamp(sint32(x) - 1, 0, sint32(w) - 1));
+						uint32 ex = numeric_cast<uint32>(clamp(sint32(x) + 1, 0, sint32(w) - 1));
 						T a;
 						for (uint32 yy = sy; yy <= ey; yy++)
 						{
@@ -744,7 +743,9 @@ void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &me
 		return;
 	generator.genUvs();
 	generator.genTextures(albedo, special);
-	generator.inpaint(albedo);
-	generator.inpaint(special);
+	for (uint32 i = 0; i < 3; i++)
+		generator.inpaint(albedo);
+	for (uint32 i = 0; i < 3; i++)
+		generator.inpaint(special);
 	CAGE_LOG_DEBUG(severityEnum::Info, "generator", string() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
 }
