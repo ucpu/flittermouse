@@ -4,8 +4,8 @@
 #include <cage-core/collisionMesh.h>
 #include <cage-core/collision.h>
 
-#include <cage-client/core.h>
-#include <cage-client/engine.h>
+#include <cage-engine/core.h>
+#include <cage-engine/engine.h>
 
 using namespace cage;
 
@@ -45,11 +45,11 @@ vec3 terrainIntersection(const line &ln)
 	collisionSearchQuery->query(ln);
 	if (collisionSearchQuery->name() == 0)
 		return vec3();
-	CAGE_ASSERT(collisionSearchQuery->collisionPairsCount() == 1);
+	CAGE_ASSERT(collisionSearchQuery->collisionPairs().size() == 1);
 	const collisionMesh *c = nullptr;
 	transform tr;
 	collisionSearchQuery->collider(c, tr);
-	triangle t = c->triangleData(collisionSearchQuery->collisionPairsData()->b);
+	triangle t = c->triangles()[collisionSearchQuery->collisionPairs()[0].b];
 	t *= tr;
 	vec3 r = intersection(ln, t);
 	CAGE_ASSERT(r.valid());

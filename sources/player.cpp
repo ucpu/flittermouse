@@ -8,10 +8,10 @@
 #include <cage-core/spatial.h>
 #include <cage-core/variableSmoothingBuffer.h>
 
-#include <cage-client/core.h>
-#include <cage-client/graphics.h>
-#include <cage-client/engine.h>
-#include <cage-client/window.h>
+#include <cage-engine/core.h>
+#include <cage-engine/graphics.h>
+#include <cage-engine/engine.h>
+#include <cage-engine/window.h>
 
 vec3 playerPosition;
 
@@ -126,7 +126,7 @@ namespace
 		return false;
 	}
 
-	bool mouseWheel(sint8 wheel, modifiersFlags m, const ivec2 &p)
+	bool mouseWheel(sint32 wheel, modifiersFlags m, const ivec2 &p)
 	{
 		mouseMoved[2] += wheel;
 		return false;

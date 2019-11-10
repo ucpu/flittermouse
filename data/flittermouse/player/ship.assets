@@ -1,8 +1,8 @@
 
 []
 scheme = mesh
-export_uv = false
-export_tangent = false
+uvs = false
+
 scale = 0.02
 ship.obj?legs
 ship.obj?hull

@@ -3,7 +3,6 @@
 
 #include <cage-core/core.h>
 #include <cage-core/math.h>
-#include <cage-core/log.h>
 
 #include <optick.h>
 

@@ -6,7 +6,7 @@
 #include <cage-core/random.h>
 #include <cage-core/image.h>
 #include <cage-core/enumerate.h>
-#include <cage-client/core.h>
+#include <cage-engine/core.h>
 
 #include "dualmc.h"
 #include "xatlas.h"
@@ -48,7 +48,7 @@ namespace
 
 	inline vec3 pdnToRgb(real h, real s, real v)
 	{
-		return convertHsvToRgb(vec3(h / 360, s / 100, v / 100));
+		return colorHsvToRgb(vec3(h / 360, s / 100, v / 100));
 	}
 
 	inline real sharpEdge(real v)
@@ -623,9 +623,9 @@ namespace
 				{
 					*hi = (*hi * +0.5 + 0.5) * 0.5 + 0.25;
 					*vi = *vi * 0.5 + 0.5;
-					vec3 hsv = convertRgbToHsv(albedo) + (vec3(*hi, 1 - *vi, *vi) - 0.5) * 0.1;
+					vec3 hsv = colorRgbToHsv(albedo) + (vec3(*hi, 1 - *vi, *vi) - 0.5) * 0.1;
 					hsv[0] = (hsv[0] + 1) % 1;
-					albedo = convertHsvToRgb(clamp(hsv, vec3(0), vec3(1)));
+					albedo = colorHsvToRgb(clamp(hsv, vec3(0), vec3(1)));
 					hi++;
 					vi++;
 				}

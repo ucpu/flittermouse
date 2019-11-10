@@ -1,7 +1,0 @@
-[textures]
-albedo = nozzleFlame_$.png
-
-[flags]
-no-lighting
-no-shadow-cast
-translucency

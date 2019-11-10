@@ -1,18 +1,18 @@
 #include <exception>
 
 #include <cage-core/core.h>
-#include <cage-core/log.h>
+#include <cage-core/logger.h>
 #include <cage-core/math.h>
 #include <cage-core/config.h>
 #include <cage-core/assetManager.h>
-#include <cage-core/configIni.h>
 #include <cage-core/hashString.h>
 
-#include <cage-client/core.h>
-#include <cage-client/window.h>
-#include <cage-client/engine.h>
-#include <cage-client/engineProfiling.h>
-#include <cage-client/highPerformanceGpuHint.h>
+#include <cage-engine/core.h>
+#include <cage-engine/window.h>
+#include <cage-engine/engine.h>
+#include <cage-engine/engineProfiling.h>
+#include <cage-engine/fullscreenSwitcher.h>
+#include <cage-engine/highPerformanceGpuHint.h>
 
 using namespace cage;
 
@@ -29,6 +29,7 @@ int main(int argc, const char *args[])
 {
 	try
 	{
+		configSetBool("cage.config.autoSave", true);
 		holder<logger> log1 = newLogger();
 		log1->format.bind<logFormatConsole>();
 		log1->output.bind<logOutputStdOut>();
@@ -40,11 +41,10 @@ int main(int argc, const char *args[])
 		eventListener<bool()> windowCloseListener;
 		windowCloseListener.bind<&windowClose>();
 		window()->events.windowClose.attach(windowCloseListener);
-
 		window()->title("flittermouse");
-		window()->setMaximized();
 
 		{
+			holder<fullscreenSwitcher> fullscreen = newFullscreenSwitcher({});
 			holder<engineProfiling> engineProfiling = newEngineProfiling();
 			engineProfiling->profilingScope = engineProfilingScopeEnum::None;
 
@@ -53,15 +53,6 @@ int main(int argc, const char *args[])
 
 		assets()->remove(hashString("flittermouse/flittermouse.pack"));
 		engineFinalize();
-
-		try
-		{
-			configSaveIni("flittermouse.ini", "flittermouse");
-		}
-		catch (...)
-		{
-			CAGE_LOG(severityEnum::Warning, "flittermouse", "failed to save game configuration");
-		}
 		return 0;
 	}
 	catch (const cage::exception &e)

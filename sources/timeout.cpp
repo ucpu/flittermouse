@@ -4,8 +4,8 @@
 #include <cage-core/hashString.h>
 #include <cage-core/color.h>
 
-#include <cage-client/core.h>
-#include <cage-client/engine.h>
+#include <cage-engine/core.h>
+#include <cage-engine/engine.h>
 
 entityGroup *entitiesToDestroy;
 entityComponent *timeoutComponent::component;
