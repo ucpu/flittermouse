@@ -65,7 +65,7 @@ namespace
 		}
 	};
 
-	std::array<tileStruct, 2048> tiles;
+	std::array<tileStruct, 4096> tiles;
 	bool stopping;
 
 	/////////////////////////////////////////////////////////////////////////////
@@ -114,7 +114,7 @@ namespace
 				}
 				t.status = tileStatusEnum::Defabricate;
 			}
-			// create entity_
+			// create entity
 			else if (t.status == tileStatusEnum::Entity)
 			{
 				if (t.cpuCollider)
@@ -221,7 +221,6 @@ namespace
 				assets()->set<assetSchemeIndexMesh, renderMesh>(t.meshName, t.gpuMesh.get());
 				assets()->set<assetSchemeIndexRenderObject, renderObject>(t.objectName, t.gpuObject.get());
 				t.status = tileStatusEnum::Entity;
-				break;
 			}
 			else if (t.status == tileStatusEnum::Defabricate)
 			{
@@ -236,7 +235,6 @@ namespace
 				t.meshName = 0;
 				t.objectName = 0;
 				t.status = tileStatusEnum::Unload1;
-				break;
 			}
 		}
 	}
@@ -344,8 +342,13 @@ namespace
 		{
 			if (t.status != tileStatusEnum::Generate)
 				continue;
-			if (result && t.distanceToPlayer() > result->distanceToPlayer())
-				continue;
+			if (result)
+			{
+				if (t.pos.radius < result->pos.radius)
+					continue;
+				if (t.distanceToPlayer() > result->distanceToPlayer())
+					continue;
+			}
 			result = &t;
 		}
 		if (result)
@@ -404,7 +407,6 @@ namespace
 	/////////////////////////////////////////////////////////////////////////////
 	// INITIALIZE
 	/////////////////////////////////////////////////////////////////////////////
-
 
 	class callbacksInitClass
 	{

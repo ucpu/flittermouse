@@ -18,7 +18,7 @@ namespace
 {
 	const uint32 globalSeed = (uint32)currentRandomGenerator().next();
 
-	const uint32 quadsPerTile = 12;
+	const uint32 quadsPerTile = 16;
 
 	inline void destroyAtlas(void *ptr)
 	{
@@ -446,7 +446,7 @@ namespace
 				{
 					OPTICK_EVENT("PackCharts");
 					xatlas::PackOptions pack;
-					pack.texelsPerUnit = 30;
+					pack.texelsPerUnit = 16;
 					pack.padding = 2;
 					pack.bilinear = true;
 					pack.blockAlign = true;

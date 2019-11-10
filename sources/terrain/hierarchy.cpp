@@ -19,7 +19,7 @@ namespace
 	bool coarsenessTest(const tilePosStruct &pos)
 	{
 		real d = pos.distanceToPlayer();
-		return d > pos.radius * 1.5;
+		return d > pos.radius * 4;
 	}
 
 	void traverse(tilePosStruct pos, std::set<tilePosStruct> &tilesRequests, const std::set<tilePosStruct> &tilesReady)
@@ -58,24 +58,26 @@ std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesRead
 	OPTICK_EVENT("findNeededTiles");
 	std::set<tilePosStruct> tilesRequests;
 	tilePosStruct pt;
-	pt.x = numeric_cast<sint32>(playerPosition[0] / 64) * 64;
-	pt.y = numeric_cast<sint32>(playerPosition[1] / 64) * 64;
-	pt.z = numeric_cast<sint32>(playerPosition[2] / 64) * 64;
-	for (sint32 z = -1; z < 2; z += 1)
+	static const sint32 TileSize = 32;
+	pt.x = numeric_cast<sint32>(playerPosition[0] / TileSize) * TileSize;
+	pt.y = numeric_cast<sint32>(playerPosition[1] / TileSize) * TileSize;
+	pt.z = numeric_cast<sint32>(playerPosition[2] / TileSize) * TileSize;
+	static const sint32 Range = 2;
+	for (sint32 z = -Range; z <= Range; z += 1)
 	{
-		for (sint32 y = -1; y < 2; y += 1)
+		for (sint32 y = -Range; y <= Range; y += 1)
 		{
-			for (sint32 x = -1; x < 2; x += 1)
+			for (sint32 x = -Range; x <= Range; x += 1)
 			{
 				tilePosStruct r(pt);
-				r.radius = 32;
-				r.x += 64 * x;
-				r.y += 64 * y;
-				r.z += 64 * z;
+				r.radius = TileSize / 2;
+				r.x += TileSize * x;
+				r.y += TileSize * y;
+				r.z += TileSize * z;
 				traverse(r, tilesRequests, tilesReady);
 			}
 		}
 	}
-	//CAGE_LOG(severityEnum::Info, "terrain", string() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
+	CAGE_LOG(severityEnum::Info, "terrain", string() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
 	return tilesRequests;
 }
