@@ -34,8 +34,3 @@ bool tilePosStruct::operator < (const tilePosStruct &other) const
 	}
 	return z < other.z;
 }
-
-tilePosStruct::operator string () const
-{
-	return string() + x + " " + y + " " + z + " " + radius;
-}

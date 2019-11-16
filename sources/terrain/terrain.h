@@ -18,8 +18,12 @@ struct tilePosStruct
 	transform getTransform() const;
 	real distanceToPlayer() const;
 	bool operator < (const tilePosStruct &other) const;
-	operator string () const;
 };
+
+inline stringizer &operator + (stringizer &s, const tilePosStruct &p)
+{
+	return s + p.x + " " + p.y + " " + p.z + " " + p.radius;
+}
 
 struct vertexStruct
 {

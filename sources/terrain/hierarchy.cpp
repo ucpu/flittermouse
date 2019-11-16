@@ -78,6 +78,6 @@ std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesRead
 			}
 		}
 	}
-	CAGE_LOG(severityEnum::Info, "terrain", string() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
+	CAGE_LOG_DEBUG(severityEnum::Info, "terrain", stringizer() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
 	return tilesRequests;
 }

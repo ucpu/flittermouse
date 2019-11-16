@@ -747,5 +747,5 @@ void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &me
 		generator.inpaint(albedo);
 	for (uint32 i = 0; i < 3; i++)
 		generator.inpaint(special);
-	CAGE_LOG_DEBUG(severityEnum::Info, "generator", string() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
+	CAGE_LOG_DEBUG(severityEnum::Info, "generator", stringizer() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
 }

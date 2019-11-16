@@ -16,7 +16,7 @@ namespace
 
 		{ // player position
 			CAGE_COMPONENT_GUI(text, t, ents->get(playerPositionLabel));
-			t.value = playerPosition;
+			t.value = stringizer() + playerPosition;
 		}
 
 		return false;
