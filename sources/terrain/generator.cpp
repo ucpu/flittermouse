@@ -111,11 +111,6 @@ namespace
 		std::swap(b, c); // bca
 	}
 
-	inline void get(holder<image> &img, uint32 x, uint32 y, real &result) { result = img->get1(x, y); }
-	inline void get(holder<image> &img, uint32 x, uint32 y, vec2 &result) { result = img->get2(x, y); }
-	inline void get(holder<image> &img, uint32 x, uint32 y, vec3 &result) { result = img->get3(x, y); }
-	inline void get(holder<image> &img, uint32 x, uint32 y, vec4 &result) { result = img->get4(x, y); }
-
 	holder<noiseFunction> densityNoise1 = newClouds(globalSeed + 1, 3);
 	holder<noiseFunction> densityNoise2 = newClouds(globalSeed + 2, 3);
 	holder<noiseFunction> colorNoise1 = newClouds(globalSeed + 3, 3);
@@ -641,67 +636,6 @@ namespace
 				}
 			}
 		}
-
-		template<class T>
-		void inpaintProcess(holder<image> &src, holder<image> &dst)
-		{
-			uint32 w = src->width();
-			uint32 h = src->height();
-			for (uint32 y = 0; y < h; y++)
-			{
-				for (uint32 x = 0; x < w; x++)
-				{
-					T m;
-					get(src, x, y, m);
-					if (m == T())
-					{
-						uint32 cnt = 0;
-						uint32 sy = numeric_cast<uint32>(clamp(sint32(y) - 1, 0, sint32(h) - 1));
-						uint32 ey = numeric_cast<uint32>(clamp(sint32(y) + 1, 0, sint32(h) - 1));
-						uint32 sx = numeric_cast<uint32>(clamp(sint32(x) - 1, 0, sint32(w) - 1));
-						uint32 ex = numeric_cast<uint32>(clamp(sint32(x) + 1, 0, sint32(w) - 1));
-						T a;
-						for (uint32 yy = sy; yy <= ey; yy++)
-						{
-							for (uint32 xx = sx; xx <= ex; xx++)
-							{
-								get(src, xx, yy, a);
-								if (a != T())
-								{
-									m += a;
-									cnt++;
-								}
-							}
-						}
-						if (cnt > 0)
-							dst->set(x, y, m / cnt);
-					}
-					else
-						dst->set(x, y, m);
-				}
-			}
-		}
-
-		void inpaint(holder<image> &img)
-		{
-			if (!img)
-				return;
-
-			OPTICK_EVENT("inpaint");
-			uint32 w = img->width();
-			uint32 h = img->height();
-			uint32 c = img->channels();
-			holder<image> tmp = newImage();
-			tmp->empty(w, h, c, img->bytesPerChannel());
-			switch (c)
-			{
-			case 1: inpaintProcess<real>(img, tmp); break;
-			case 2: inpaintProcess<vec2>(img, tmp); break;
-			case 3: inpaintProcess<vec3>(img, tmp); break;
-			case 4: inpaintProcess<vec4>(img, tmp); break;
-			}
-			std::swap(img, tmp);
-		}
 	};
 
 	int xAtlasPrint(const char *format, ...)
@@ -743,9 +677,10 @@ void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &me
 		return;
 	generator.genUvs();
 	generator.genTextures(albedo, special);
-	for (uint32 i = 0; i < 3; i++)
-		generator.inpaint(albedo);
-	for (uint32 i = 0; i < 3; i++)
-		generator.inpaint(special);
+	{
+		OPTICK_EVENT("inpaint");
+		inpaint(albedo.get(), 3);
+		inpaint(special.get(), 3);
+	}
 	CAGE_LOG_DEBUG(severityEnum::Info, "generator", stringizer() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
 }
