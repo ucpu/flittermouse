@@ -15,11 +15,43 @@ namespace
 	void getN(uint8 *const v, vec3 &result) { result = vec3(v[0], v[1], v[2]); }
 	void getN(uint8 *const v, vec4 &result) { result = vec4(v[0], v[1], v[2], v[3]); }
 
+	bool operator == (const ivec2 &a, const ivec2 &b)
+	{
+		return a.x == b.x && a.y == b.y;
+	}
+
+	bool operator < (const ivec2 &a, const ivec2 &b)
+	{
+		return a.y == b.y ? a.x < b.x : a.y < b.y;
+	}
+
+	struct bits
+	{
+		std::vector<bool> data;
+		uint32 w;
+
+		bits(uint32 w, uint32 h) : w(w)
+		{
+			data.resize(w * h, false);
+		}
+
+		void set(uint32 x, uint32 y)
+		{
+			data[w * y + x] = true;
+		}
+
+		bool get(uint32 x, uint32 y)
+		{
+			return data[w * y + x];
+		}
+	};
+
 	template<class T>
 	struct inpainter
 	{
 		image *const img;
 		uint8 *const imgData;
+		bits bts;
 		const uint32 channels;
 		const sint32 w;
 		const sint32 h;
@@ -31,11 +63,6 @@ namespace
 			return res;
 		}
 
-		bool blank(sint32 x, sint32 y)
-		{
-			return get(x, y) == T();
-		}
-
 		bool in(sint32 x, sint32 y)
 		{
 			return x >= 0 && y >= 0 && x < w && y < h;
@@ -43,7 +70,7 @@ namespace
 
 		bool hasValidNeighbor(sint32 x, sint32 y)
 		{
-#define TEST(X, Y) || (in(x + X, y + Y) && !blank(x + X, y + Y))
+#define TEST(X, Y) || (in(x + X, y + Y) && bts.get(x + X, y + Y))
 			return false
 			TEST(-1, -1)
 			TEST(0, -1)
@@ -60,7 +87,7 @@ namespace
 		{
 			T t;
 			uint32 cnt = 0;
-#define TEST(X, Y) if (in(x + X, y + Y)) { T v = get(x + X, y + Y); if (v != T()) { t += v; cnt++; } }
+#define TEST(X, Y) if (in(x + X, y + Y)) { if (bts.get(x + X, y + Y)) { t += get(x + X, y + Y); cnt++; } }
 			TEST(-1, -1)
 			TEST(0, -1)
 			TEST(1, -1)
@@ -74,11 +101,23 @@ namespace
 			return t / cnt;
 		}
 
-		inpainter(image *img, uint32 radius) : img(img), imgData((uint8*)img->bufferData()), channels(img->channels()), w(img->width()), h(img->height())
+		inpainter(image *img, uint32 radius) : img(img), imgData((uint8*)img->bufferData()), bts(img->width(), img->height()), channels(img->channels()), w(img->width()), h(img->height())
 		{
 			OPTICK_EVENT("imageInpaint");
 			std::vector<ivec2> borders;
 			borders.reserve(w * h / 10);
+
+			{ // fill in the bits
+				OPTICK_EVENT("fill bits");
+				for (sint32 y = 0; y < h; y++)
+				{
+					for (sint32 x = 0; x < w; x++)
+					{
+						if (get(x, y) != T())
+							bts.set(x, y);
+					}
+				}
+			}
 
 			{ // find borders
 				OPTICK_EVENT("find borders");
@@ -86,7 +125,7 @@ namespace
 				{
 					for (sint32 x = 0; x < w; x++)
 					{
-						if (blank(x, y) && hasValidNeighbor(x, y))
+						if (!bts.get(x, y) && hasValidNeighbor(x, y))
 						{
 							ivec2 b;
 							b.x = x;
@@ -114,7 +153,10 @@ namespace
 				{ // apply colors at borders
 					auto c = colors.begin();
 					for (const ivec2 &it : borders)
+					{
 						img->set(it.x, it.y, *(c++) / 255);
+						bts.set(it.x, it.y);
+					}
 				}
 
 				if (--radius == 0)
@@ -123,9 +165,10 @@ namespace
 				{ // expand borders
 					std::vector<ivec2> bs;
 					bs.reserve(borders.size() * 2);
+					bits bts2 = bts;
 					for (const ivec2 &it : borders)
 					{
-#define TEST(X, Y) if (in(it.x + X, it.y + Y)) { T v = get(it.x + X, it.y + Y); if (v == T()) { ivec2 b; b.x = it.x + X; b.y = it.y + Y; bs.push_back(b); } }
+#define TEST(X, Y) if (in(it.x + X, it.y + Y)) { ivec2 b; b.x = it.x + X; b.y = it.y + Y; if (!bts2.get(b.x, b.y)) { bs.push_back(b); bts2.set(b.x, b.y); } }
 						TEST(-1, -1)
 						TEST(0, -1)
 						TEST(1, -1)
@@ -135,11 +178,6 @@ namespace
 						TEST(0, 1)
 						TEST(1, 1)
 #undef TEST
-					}
-					{
-						OPTICK_EVENT("deduplication");
-						std::sort(bs.begin(), bs.end(), [](const auto &a, const auto &b) { return a.y == b.y ? a.x < b.x : a.y < b.y; });
-						bs.erase(std::unique(bs.begin(), bs.end(), [](const auto &a, const auto &b) { return a.x == b.x && a.y == b.y; }), bs.end());
 					}
 					std::swap(bs, borders);
 				}
