@@ -3,6 +3,7 @@
 #include <cage-core/geometry.h>
 #include <cage-core/color.h>
 #include <cage-core/image.h>
+#include <cage-engine/core.h> // ivec2
 
 #include <cstdarg>
 #include <algorithm>
@@ -29,12 +30,6 @@ namespace
 			getN(imgData + (y * w + x) * channels, res);
 			return res;
 		}
-
-		struct border
-		{
-			sint32 x, y;
-			T color;
-		};
 
 		bool blank(sint32 x, sint32 y)
 		{
@@ -81,17 +76,19 @@ namespace
 
 		inpainter(image *img, uint32 radius) : img(img), imgData((uint8*)img->bufferData()), channels(img->channels()), w(img->width()), h(img->height())
 		{
-			std::vector<border> borders;
+			OPTICK_EVENT("imageInpaint");
+			std::vector<ivec2> borders;
 			borders.reserve(w * h / 10);
 
 			{ // find borders
+				OPTICK_EVENT("find borders");
 				for (sint32 y = 0; y < h; y++)
 				{
 					for (sint32 x = 0; x < w; x++)
 					{
 						if (blank(x, y) && hasValidNeighbor(x, y))
 						{
-							border b;
+							ivec2 b;
 							b.x = x;
 							b.y = y;
 							borders.push_back(b);
@@ -100,27 +97,35 @@ namespace
 				}
 			}
 
+			uint32 inpaintTotal = 0;
 			while (true)
 			{
+				OPTICK_EVENT("iteration");
+				OPTICK_TAG("count", borders.size());
+				inpaintTotal += borders.size();
+
+				std::vector<T> colors;
+				colors.reserve(borders.size());
 				{ // find colors for borders
-					for (border &it : borders)
-						it.color = inpaintColor(it.x, it.y);
+					for (ivec2 &it : borders)
+						colors.push_back(inpaintColor(it.x, it.y));
 				}
 
 				{ // apply colors at borders
-					for (const border &it : borders)
-						img->set(it.x, it.y, it.color / 255);
+					auto c = colors.begin();
+					for (const ivec2 &it : borders)
+						img->set(it.x, it.y, *(c++) / 255);
 				}
 
 				if (--radius == 0)
 					break;
 
 				{ // expand borders
-					std::vector<border> bs;
+					std::vector<ivec2> bs;
 					bs.reserve(borders.size() * 2);
-					for (const border &it : borders)
+					for (const ivec2 &it : borders)
 					{
-#define TEST(X, Y) if (in(it.x + X, it.y + Y)) { T v = get(it.x + X, it.y + Y); if (v == T()) { border b; b.x = it.x + X; b.y = it.y + Y; bs.push_back(b); } }
+#define TEST(X, Y) if (in(it.x + X, it.y + Y)) { T v = get(it.x + X, it.y + Y); if (v == T()) { ivec2 b; b.x = it.x + X; b.y = it.y + Y; bs.push_back(b); } }
 						TEST(-1, -1)
 						TEST(0, -1)
 						TEST(1, -1)
@@ -131,15 +136,21 @@ namespace
 						TEST(1, 1)
 #undef TEST
 					}
-					bs.erase(std::unique(bs.begin(), bs.end(), [](const auto &a, const auto &b) { return a.x == b.x && a.y == b.y; }), bs.end());
+					{
+						OPTICK_EVENT("deduplication");
+						std::sort(bs.begin(), bs.end(), [](const auto &a, const auto &b) { return a.y == b.y ? a.x < b.x : a.y < b.y; });
+						bs.erase(std::unique(bs.begin(), bs.end(), [](const auto &a, const auto &b) { return a.x == b.x && a.y == b.y; }), bs.end());
+					}
 					std::swap(bs, borders);
 				}
 			}
+
+			OPTICK_TAG("count", inpaintTotal);
 		}
 	};
 }
 
-void inpaint(image *img, uint32 radius)
+void imageInpaint(image *img, uint32 radius)
 {
 	if (!img)
 		return;

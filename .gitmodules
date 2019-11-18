@@ -7,3 +7,6 @@
 [submodule "externals/xatlas"]
 	path = externals/xatlas
 	url = https://github.com/jpcy/xatlas.git
+[submodule "externals/trianglepacker"]
+	path = externals/trianglepacker
+	url = https://github.com/ands/trianglepacker

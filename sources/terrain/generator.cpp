@@ -1,25 +1,29 @@
 #include "terrain.h"
 
 #include <cage-core/geometry.h>
-#include <cage-core/noiseFunction.h>
-#include <cage-core/color.h>
-#include <cage-core/random.h>
 #include <cage-core/image.h>
 #include <cage-core/enumerate.h>
-#include <cage-engine/core.h>
+#include <cage-core/noiseFunction.h>
+#include <cage-engine/core.h> // ivec2
 
 #include "dualmc.h"
+
+#ifdef UV_MODE_XATLAS
 #include "xatlas.h"
+#endif
+
+#ifdef UV_MODE_TRIANGLEPACKER
+#include "trianglepacker.h"
+#endif
 
 #include <cstdarg>
 #include <algorithm>
 
 namespace
 {
-	const uint32 globalSeed = (uint32)currentRandomGenerator().next();
-
 	const uint32 quadsPerTile = 16;
 
+#ifdef UV_MODE_XATLAS
 	inline void destroyAtlas(void *ptr)
 	{
 		xatlas::Destroy((xatlas::Atlas*)ptr);
@@ -30,33 +34,9 @@ namespace
 		xatlas::Atlas *a = xatlas::Create();
 		return holder<xatlas::Atlas>(a, a, delegate<void(void*)>().bind<&destroyAtlas>());
 	}
+#endif
 
-	inline holder<noiseFunction> newClouds(uint32 seed, uint32 octaves)
-	{
-		noiseFunctionCreateConfig cfg;
-		cfg.octaves = octaves;
-		cfg.type = noiseTypeEnum::Value;
-		cfg.seed = seed;
-		return newNoiseFunction(cfg);
-	}
-
-	template <class T>
-	inline T rescale(const T &v, real ia, real ib, real oa, real ob)
-	{
-		return (v - ia) / (ib - ia) * (ob - oa) + oa;
-	}
-
-	inline vec3 pdnToRgb(real h, real s, real v)
-	{
-		return colorHsvToRgb(vec3(h / 360, s / 100, v / 100));
-	}
-
-	inline real sharpEdge(real v)
-	{
-		return rescale(clamp(v, 0.45, 0.55), 0.45, 0.55, 0, 1);
-	}
-
-	inline vec2 barycoord(const triangle &t, const vec2 &p)
+	vec2 barycoord(const triangle &t, const vec2 &p)
 	{
 		vec2 a = vec2(t[0]);
 		vec2 b = vec2(t[1]);
@@ -76,7 +56,7 @@ namespace
 		return vec2(u, v);
 	}
 
-	inline vec3 interpolate(const triangle &t, const vec2 &p)
+	vec3 interpolate(const triangle &t, const vec2 &p)
 	{
 		vec3 a = t[0];
 		vec3 b = t[1];
@@ -84,38 +64,35 @@ namespace
 		return p[0] * a + p[1] * b + (1 - p[0] - p[1]) * c;
 	}
 
-	inline bool inside(const vec2 &b)
+	bool inside(const vec2 &b)
 	{
 		return b[0] >= 0 && b[1] >= 0 && b[0] + b[1] <= 1;
 	}
 
-	inline ivec2 operator + (const ivec2 &a, const ivec2 &b)
+	ivec2 operator + (const ivec2 &a, const ivec2 &b)
 	{
 		return ivec2(a.x + b.x, a.y + b.y);
 	}
 
-	inline ivec2 operator - (const ivec2 &a, const ivec2 &b)
+	ivec2 operator - (const ivec2 &a, const ivec2 &b)
 	{
 		return ivec2(a.x - b.x, a.y - b.y);
 	}
 
-	inline ivec2 operator * (const ivec2 &a, float b)
+	ivec2 operator * (const ivec2 &a, float b)
 	{
 		return ivec2(sint32(a.x * b), sint32(a.y * b));
 	}
 
 	template<class T>
-	inline void turnLeft(T &a, T &b, T &c)
+	void turnLeft(T &a, T &b, T &c)
 	{
 		std::swap(a, b); // bac
 		std::swap(b, c); // bca
 	}
 
-	holder<noiseFunction> densityNoise1 = newClouds(globalSeed + 1, 3);
-	holder<noiseFunction> densityNoise2 = newClouds(globalSeed + 2, 3);
-	holder<noiseFunction> colorNoise1 = newClouds(globalSeed + 3, 3);
-	holder<noiseFunction> colorNoise2 = newClouds(globalSeed + 4, 2);
-	holder<noiseFunction> colorNoise3 = newClouds(globalSeed + 5, 4);
+	holder<noiseFunction> densityNoise1 = newClouds(globalSeed() + 1, 3);
+	holder<noiseFunction> densityNoise2 = newClouds(globalSeed() + 2, 3);
 
 	struct meshGenStruct
 	{
@@ -126,7 +103,10 @@ namespace
 		std::vector<dualmc::Quad> mcIndices;
 		std::vector<vertexStruct> &meshVertices;
 		std::vector<uint32> &meshIndices;
+#ifdef UV_MODE_XATLAS
 		holder<xatlas::Atlas> atlas;
+#endif
+		uint32 texWidth, texHeight;
 
 		// marching cubes space -> local (normalized) space
 		vec3 m2l(const dualmc::Vertex &v) const
@@ -140,7 +120,7 @@ namespace
 			return tr.scale * p + tr.position;
 		}
 
-		meshGenStruct(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices) : tilePos(tilePos), meshVertices(meshVertices), meshIndices(meshIndices)
+		meshGenStruct(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices) : tilePos(tilePos), meshVertices(meshVertices), meshIndices(meshIndices), texWidth(0), texHeight(0)
 		{
 			tr = tilePos.getTransform();
 		}
@@ -172,6 +152,7 @@ namespace
 			real *t = tmp.data();
 			for (real &d : densities)
 				d -= *t++;
+			OPTICK_TAG("count", densities.size());
 		}
 
 		void genSurface()
@@ -219,6 +200,8 @@ namespace
 				it.normal = normalize(it.normal);
 			std::vector<dualmc::Vertex>().swap(mcVertices);
 			std::vector<dualmc::Quad>().swap(mcIndices);
+			OPTICK_TAG("vertices", meshVertices.size());
+			OPTICK_TAG("indices", meshIndices.size());
 		}
 
 		uint32 clipAddPoint(uint32 ai, uint32 bi, uint32 axis, real value)
@@ -383,7 +366,6 @@ namespace
 					tmp.clear();
 				}
 			}
-
 			{ // filter vertices
 				std::vector<bool> used;
 				used.resize(meshVertices.size());
@@ -407,8 +389,11 @@ namespace
 				for (uint32 &it : meshIndices)
 					it = indices[it];
 			}
+			OPTICK_TAG("vertices", meshVertices.size());
+			OPTICK_TAG("indices", meshIndices.size());
 		}
 
+#ifdef UV_MODE_XATLAS
 		void genUvs()
 		{
 			OPTICK_EVENT("genUvs");
@@ -470,14 +455,80 @@ namespace
 				std::vector<uint32> is(m->indexArray, m->indexArray + m->indexCount);
 				meshIndices.swap(is);
 			}
+
+			texWidth = atlas->width * 2;
+			texHeight = atlas->height * 2;
+
+			OPTICK_TAG("vertices", meshVertices.size());
+			OPTICK_TAG("indices", meshIndices.size());
 		}
+#endif
+
+#ifdef UV_MODE_TRIANGLEPACKER
+		void genUvs()
+		{
+			OPTICK_EVENT("genUvs");
+
+			uint32 count = meshIndices.size();
+			std::vector<vec3> pos;
+			pos.reserve(count);
+			for (uint32 i = 0; i < count; i += 3)
+			{
+				pos.push_back(meshVertices[meshIndices[i + 0]].position);
+				pos.push_back(meshVertices[meshIndices[i + 1]].position);
+				pos.push_back(meshVertices[meshIndices[i + 2]].position);
+			}
+
+			std::vector<vec2> uvs;
+			uvs.resize(count);
+
+			uint32 w = 512, h = 512;
+			while (true)
+			{
+				OPTICK_EVENT("tpPackWithFixedScaleIntoRect");
+				auto res = tpPackWithFixedScaleIntoRect((float*)pos.data(), count, 30, w, h, 0, 5, (float*)uvs.data());
+				if (res == count)
+					break;
+				if (w > h)
+					h *= 2;
+				else
+					w *= 2;
+			}
+			texWidth = w;
+			texHeight = h;
+
+			std::vector<vertexStruct> vs;
+			vs.reserve(count);
+			for (uint32 i = 0; i < count; i += 3)
+			{
+				for (uint32 j = 0; j < 3; j++)
+				{
+					vertexStruct v = meshVertices[meshIndices[i + j]];
+					v.uv = uvs[i + j];
+					vs.push_back(v);
+				}
+			}
+
+			std::vector<uint32> is;
+			is.reserve(count);
+			for (uint32 i = 0; i < count; i++)
+				is.push_back(i);
+
+			meshVertices.swap(vs);
+			meshIndices.swap(is);
+
+			OPTICK_TAG("vertices", meshVertices.size());
+			OPTICK_TAG("indices", meshIndices.size());
+		}
+#endif
 
 		void genTextures(holder<image> &albedo, holder<image> &special)
 		{
 			OPTICK_EVENT("genTextures");
-			static const uint32 textureScale = 2;
-			const uint32 w = atlas->width * textureScale;
-			const uint32 h = atlas->height * textureScale;
+			OPTICK_TAG("width", texWidth);
+			OPTICK_TAG("height", texHeight);
+			const uint32 w = texWidth;
+			const uint32 h = texHeight;
 
 			albedo = newImage();
 			albedo->empty(w, h, 3);
@@ -489,8 +540,7 @@ namespace
 			std::vector<triangle> triUvs;
 			{
 				OPTICK_EVENT("prepTris");
-				const xatlas::Mesh *m = atlas->meshes;
-				const uint32 triCount = m->indexCount / 3;
+				const uint32 triCount = meshIndices.size() / 3;
 				triPos.reserve(triCount);
 				triNorms.reserve(triCount);
 				triUvs.reserve(triCount);
@@ -499,7 +549,7 @@ namespace
 					triangle p;
 					triangle n;
 					triangle u;
-					const uint32 *ids = m->indexArray + triIdx * 3;
+					const uint32 *ids = meshIndices.data() + triIdx * 3;
 					for (uint32 i = 0; i < 3; i++)
 					{
 						const vertexStruct &v = meshVertices[ids[i]];
@@ -518,26 +568,25 @@ namespace
 			std::vector<uint32> xs;
 			std::vector<uint32> ys;
 			{
-				OPTICK_EVENT("prepNoise");
+				OPTICK_EVENT("rasterization");
 				positions.reserve(w * h);
 				normals.reserve(w * h);
 				xs.reserve(w * h);
 				ys.reserve(w * h);
 				const vec2 whInv = 1 / vec2(w - 1, h - 1);
 
-				const xatlas::Mesh *m = atlas->meshes;
-				const uint32 triCount = m->indexCount / 3;
+				const uint32 triCount = meshIndices.size() / 3;
 				for (uint32 triIdx = 0; triIdx < triCount; triIdx++)
 				{
-					const uint32 *vertIds = m->indexArray + triIdx * 3;
-					const float *vertUvs[3] = {
-						m->vertexArray[vertIds[0]].uv,
-						m->vertexArray[vertIds[1]].uv,
-						m->vertexArray[vertIds[2]].uv
+					const uint32 *vertIds = meshIndices.data() + triIdx * 3;
+					const vec2 vertUvs[3] = {
+						meshVertices[vertIds[0]].uv,
+						meshVertices[vertIds[1]].uv,
+						meshVertices[vertIds[2]].uv
 					};
-					ivec2 t0 = ivec2(sint32(vertUvs[0][0] * textureScale), sint32(vertUvs[0][1] * textureScale));
-					ivec2 t1 = ivec2(sint32(vertUvs[1][0] * textureScale), sint32(vertUvs[1][1] * textureScale));
-					ivec2 t2 = ivec2(sint32(vertUvs[2][0] * textureScale), sint32(vertUvs[2][1] * textureScale));
+					ivec2 t0 = ivec2(numeric_cast<sint32>(vertUvs[0][0] * w), numeric_cast<sint32>(vertUvs[0][1] * h));
+					ivec2 t1 = ivec2(numeric_cast<sint32>(vertUvs[1][0] * w), numeric_cast<sint32>(vertUvs[1][1] * h));
+					ivec2 t2 = ivec2(numeric_cast<sint32>(vertUvs[2][0] * w), numeric_cast<sint32>(vertUvs[2][1] * h));
 					// inspired by https://github.com/ssloy/tinyrenderer/wiki/Lesson-2:-Triangle-rasterization-and-back-face-culling
 					if (t0.y > t1.y)
 						std::swap(t0, t1);
@@ -571,73 +620,11 @@ namespace
 				}
 			}
 
-			{
-				OPTICK_EVENT("pixelColors");
-				static const vec3 colors[] = {
-					pdnToRgb(240, 1, 45),
-					pdnToRgb(230, 6, 35),
-					pdnToRgb(240, 11, 28),
-					pdnToRgb(232, 27, 21),
-					pdnToRgb(31, 34, 96),
-					pdnToRgb(31, 56, 93),
-					pdnToRgb(26, 68, 80),
-					pdnToRgb(21, 69, 55)
-				};
-
-				std::vector<vec3> pos(positions.begin(), positions.end());
-				for (vec3 &p : pos)
-					p *= 0.042;
-				std::vector<real> c;
-				c.resize(xs.size());
-				colorNoise3->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), c.data());
-				std::vector<vec3> albedos;
-				albedos.reserve(pos.size());
-				for (real &u : c)
-				{
-					u = ((u * 0.5 + 0.5) * 16) % 8;
-					uint32 i = numeric_cast<uint32>(u);
-					real f = sharpEdge(u - i);
-					albedos.push_back(interpolate(colors[i], colors[(i + 1) % 8], f));
-				}
-
-				std::vector<real> v1;
-				v1.resize(pos.size());
-				vec3 *position = positions.data();
-				for (vec3 &p : pos)
-					p = *position++ * 3;
-				colorNoise1->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), v1.data());
-				std::vector<real> v2;
-				v2.resize(pos.size());
-				position = positions.data();
-				for (vec3 &p : pos)
-					p = *position++ * 4;
-				colorNoise2->evaluate(numeric_cast<uint32>(pos.size()), pos.data(), v2.data());
-				real *hi = v1.data();
-				real *vi = v2.data();
-				for (vec3 &albedo : albedos)
-				{
-					*hi = (*hi * +0.5 + 0.5) * 0.5 + 0.25;
-					*vi = *vi * 0.5 + 0.5;
-					vec3 hsv = colorRgbToHsv(albedo) + (vec3(*hi, 1 - *vi, *vi) - 0.5) * 0.1;
-					hsv[0] = (hsv[0] + 1) % 1;
-					albedo = colorHsvToRgb(clamp(hsv, vec3(0), vec3(1)));
-					hi++;
-					vi++;
-				}
-
-				uint32 *xi = xs.data();
-				uint32 *yi = ys.data();
-				for (vec3 &alb : albedos)
-				{
-					albedo->set(*xi, *yi, alb);
-					special->set(*xi, *yi, vec2(0.8, 0.002));
-					xi++;
-					yi++;
-				}
-			}
+			textureData(albedo, special, positions, normals, xs, ys);
 		}
 	};
 
+#ifdef UV_MODE_XATLAS
 	int xAtlasPrint(const char *format, ...)
 	{
 		char buffer[1000];
@@ -657,6 +644,7 @@ namespace
 			xatlas::SetPrint(&xAtlasPrint, true);
 		}
 	} initializerInstance;
+#endif
 }
 
 void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<image> &albedo, holder<image> &special)
@@ -679,8 +667,8 @@ void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &me
 	generator.genTextures(albedo, special);
 	{
 		OPTICK_EVENT("inpaint");
-		inpaint(albedo.get(), 3);
-		inpaint(special.get(), 3);
+		imageInpaint(albedo.get(), 3);
+		imageInpaint(special.get(), 3);
 	}
 	CAGE_LOG_DEBUG(severityEnum::Info, "generator", stringizer() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
 }
