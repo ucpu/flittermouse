@@ -2,9 +2,9 @@
 
 namespace
 {
-	std::array<tilePosStruct, 8> children(const tilePosStruct &pos)
+	std::array<TilePos, 8> children(const TilePos &pos)
 	{
-		std::array<tilePosStruct, 8> res;
+		std::array<TilePos, 8> res;
 		for (uint32 i = 0; i < 8; i++)
 		{
 			res[i] = pos;
@@ -16,13 +16,13 @@ namespace
 		return res;
 	}
 
-	bool coarsenessTest(const tilePosStruct &pos)
+	bool coarsenessTest(const TilePos &pos)
 	{
 		real d = pos.distanceToPlayer();
 		return d > pos.radius * 4;
 	}
 
-	void traverse(tilePosStruct pos, std::set<tilePosStruct> &tilesRequests, const std::set<tilePosStruct> &tilesReady)
+	void traverse(TilePos pos, std::set<TilePos> &tilesRequests, const std::set<TilePos> &tilesReady)
 	{
 		if (pos.radius <= 4 || coarsenessTest(pos))
 		{
@@ -53,11 +53,11 @@ namespace
 	}
 }
 
-std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesReady)
+std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady)
 {
 	OPTICK_EVENT("findNeededTiles");
-	std::set<tilePosStruct> tilesRequests;
-	tilePosStruct pt;
+	std::set<TilePos> tilesRequests;
+	TilePos pt;
 	static const sint32 TileSize = 32;
 	pt.x = numeric_cast<sint32>(playerPosition[0] / TileSize) * TileSize;
 	pt.y = numeric_cast<sint32>(playerPosition[1] / TileSize) * TileSize;
@@ -69,7 +69,7 @@ std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesRead
 		{
 			for (sint32 x = -Range; x <= Range; x += 1)
 			{
-				tilePosStruct r(pt);
+				TilePos r(pt);
 				r.radius = TileSize / 2;
 				r.x += TileSize * x;
 				r.y += TileSize * y;
@@ -78,6 +78,6 @@ std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesRead
 			}
 		}
 	}
-	CAGE_LOG_DEBUG(severityEnum::Info, "terrain", stringizer() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
+	CAGE_LOG_DEBUG(SeverityEnum::Info, "terrain", stringizer() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
 	return tilesRequests;
 }

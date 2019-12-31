@@ -20,7 +20,7 @@ namespace
 	bool keyboardKeys[6]; // wsadeq
 	vec3 mouseMoved; // x, y, wheel
 
-	variableSmoothingBuffer<quat, 3> cameraSmoothing;
+	VariableSmoothingBuffer<quat, 3> cameraSmoothing;
 	vec3 playerSpeed;
 
 	void engineUpdate()
@@ -28,8 +28,8 @@ namespace
 		OPTICK_EVENT("player");
 
 		uint64 time = currentControlTime();
-		CAGE_COMPONENT_ENGINE(transform, ct, entities()->get(1));
-		CAGE_COMPONENT_ENGINE(transform, pt, entities()->get(10));
+		CAGE_COMPONENT_ENGINE(Transform, ct, entities()->get(1));
+		CAGE_COMPONENT_ENGINE(Transform, pt, entities()->get(10));
 
 		{ // rotate camera
 			quat q = quat(degs(-mouseMoved[1]), degs(-mouseMoved[0]), degs(mouseMoved[2] * 20));
@@ -51,7 +51,7 @@ namespace
 		}
 
 		{ // update camera position
-			CAGE_COMPONENT_ENGINE(transform, ct, entities()->get(1));
+			CAGE_COMPONENT_ENGINE(Transform, ct, entities()->get(1));
 			ct.position = pt.position + ct.orientation * vec3(0, 0.05, 0.2);
 		}
 
@@ -87,13 +87,13 @@ namespace
 		}
 	}
 
-	bool keyPress(uint32 a, uint32 b, modifiersFlags m)
+	bool keyPress(uint32 a, uint32 b, ModifiersFlags m)
 	{
 		setKeyboardKey(a, b, true);
 		return false;
 	}
 
-	bool keyRelease(uint32 a, uint32 b, modifiersFlags m)
+	bool keyRelease(uint32 a, uint32 b, ModifiersFlags m)
 	{
 		setKeyboardKey(a, b, false);
 		return false;
@@ -108,16 +108,16 @@ namespace
 		return pt2;
 	}
 
-	bool mousePress(mouseButtonsFlags b, modifiersFlags m, const ivec2 &p)
+	bool mousePress(MouseButtonsFlags b, ModifiersFlags m, const ivec2 &p)
 	{
-		if (b == mouseButtonsFlags::Left)
+		if (b == MouseButtonsFlags::Left)
 			centerMouse();
 		return false;
 	}
 
-	bool mouseMove(mouseButtonsFlags b, modifiersFlags m, const ivec2 &p)
+	bool mouseMove(MouseButtonsFlags b, ModifiersFlags m, const ivec2 &p)
 	{
-		if (b == mouseButtonsFlags::Left)
+		if (b == MouseButtonsFlags::Left)
 		{
 			ivec2 c = centerMouse();
 			mouseMoved[0] += p.x - c.x;
@@ -126,13 +126,13 @@ namespace
 		return false;
 	}
 
-	bool mouseWheel(sint32 wheel, modifiersFlags m, const ivec2 &p)
+	bool mouseWheel(sint32 wheel, ModifiersFlags m, const ivec2 &p)
 	{
 		mouseMoved[2] += wheel;
 		return false;
 	}
 
-	windowEventListeners windowListeners;
+	WindowEventListeners windowListeners;
 
 	void engineInitialize()
 	{
@@ -144,36 +144,36 @@ namespace
 		windowListeners.mouseWheel.bind<&mouseWheel>();
 
 		{ // the spaceship
-			entity *e = entities()->create(10);
-			CAGE_COMPONENT_ENGINE(render, r, e);
-			r.object = hashString("flittermouse/player/ship.object");
+			Entity *e = entities()->create(10);
+			CAGE_COMPONENT_ENGINE(Render, r, e);
+			r.object = HashString("flittermouse/player/ship.object");
 		}
 
 		{ // camera
-			entity *e = entities()->create(1);
-			CAGE_COMPONENT_ENGINE(transform, t, e);
-			CAGE_COMPONENT_ENGINE(camera, c, e);
+			Entity *e = entities()->create(1);
+			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			CAGE_COMPONENT_ENGINE(Camera, c, e);
 			c.near = 0.05;
 			c.far = 100;
 			c.ambientLight = vec3(0.01);
-			c.effects = cameraEffectsFlags::CombinedPass;
-			CAGE_COMPONENT_ENGINE(light, l, e);
-			l.lightType = lightTypeEnum::Directional;
+			c.effects = CameraEffectsFlags::CombinedPass;
+			CAGE_COMPONENT_ENGINE(Light, l, e);
+			l.lightType = LightTypeEnum::Directional;
 			l.color = vec3(1);
 		}
 	}
 
-	class callbacksInitClass
+	class Callbacks
 	{
-		eventListener<void()> engineInitListener;
-		eventListener<void()> engineUpdateListener;
+		EventListener<void()> engineInitListener;
+		EventListener<void()> engineUpdateListener;
 	public:
-		callbacksInitClass()
+		Callbacks()
 		{
 			engineInitListener.attach(controlThread().initialize);
 			engineInitListener.bind<&engineInitialize>();
 			engineUpdateListener.attach(controlThread().update);
 			engineUpdateListener.bind<&engineUpdate>();
 		}
-	} callbacksInitInstance;
+	} callbacksInstance;
 }

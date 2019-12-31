@@ -2,25 +2,25 @@
 
 #include <cage-core/geometry.h>
 
-tilePosStruct::tilePosStruct() : x(0), y(0), z(0), radius(0), visible(true)
+TilePos::TilePos() : x(0), y(0), z(0), radius(0), visible(true)
 {}
 
-aabb tilePosStruct::getBox() const
+aabb TilePos::getBox() const
 {
 	return aabb(vec3(-1), vec3(1)) * getTransform();
 }
 
-transform tilePosStruct::getTransform() const
+transform TilePos::getTransform() const
 {
 	return transform(vec3(x, y, z), quat(), radius);
 }
 
-real tilePosStruct::distanceToPlayer() const
+real TilePos::distanceToPlayer() const
 {
 	return distance(getBox(), playerPosition);
 }
 
-bool tilePosStruct::operator < (const tilePosStruct &other) const
+bool TilePos::operator < (const TilePos &other) const
 {
 	if (z == other.z)
 	{

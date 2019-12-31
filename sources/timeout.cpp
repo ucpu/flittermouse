@@ -7,10 +7,10 @@
 #include <cage-engine/core.h>
 #include <cage-engine/engine.h>
 
-entityGroup *entitiesToDestroy;
-entityComponent *timeoutComponent::component;
+EntityGroup *entitiesToDestroy;
+EntityComponent *TimeoutComponent::component;
 
-timeoutComponent::timeoutComponent() : ttl(0)
+TimeoutComponent::TimeoutComponent() : ttl(0)
 {}
 
 namespace
@@ -18,9 +18,9 @@ namespace
 	void engineUpdate()
 	{
 		OPTICK_EVENT("timeout & entities destroy");
-		for (entity *e : timeoutComponent::component->entities())
+		for (Entity *e : TimeoutComponent::component->entities())
 		{
-			GAME_GET_COMPONENT(timeout, t, e);
+			GAME_COMPONENT(Timeout, t, e);
 			if (t.ttl-- == 0)
 				e->add(entitiesToDestroy);
 		}
@@ -30,20 +30,20 @@ namespace
 	void engineInitialize()
 	{
 		entitiesToDestroy = entities()->defineGroup();
-		timeoutComponent::component = entities()->defineComponent(timeoutComponent(), true);
+		TimeoutComponent::component = entities()->defineComponent(TimeoutComponent(), true);
 	}
 
-	class callbacksInitClass
+	class Callbacks
 	{
-		eventListener<void()> engineInitListener;
-		eventListener<void()> engineUpdateListener;
+		EventListener<void()> engineInitListener;
+		EventListener<void()> engineUpdateListener;
 	public:
-		callbacksInitClass()
+		Callbacks()
 		{
 			engineInitListener.attach(controlThread().initialize);
 			engineInitListener.bind<&engineInitialize>();
 			engineUpdateListener.attach(controlThread().update);
 			engineUpdateListener.bind<&engineUpdate>();
 		}
-	} callbacksInitInstance;
+	} callbacksInstance;
 }

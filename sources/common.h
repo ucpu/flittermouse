@@ -9,19 +9,19 @@
 using namespace cage;
 
 vec3 terrainIntersection(const line &ln);
-void terrainAddCollider(uint32 name, collisionMesh *c, const transform &tr);
+void terrainAddCollider(uint32 name, CollisionMesh *c, const transform &tr);
 void terrainRemoveCollider(uint32 name);
 
-struct timeoutComponent
+struct TimeoutComponent
 {
-	static entityComponent *component;
+	static EntityComponent *component;
 	uint32 ttl;
-	timeoutComponent();
+	TimeoutComponent();
 };
 
-#define GAME_GET_COMPONENT(T,C,E) ::CAGE_JOIN(T, Component) &C = (E)->value<::CAGE_JOIN(T, Component)>(::CAGE_JOIN(T, Component)::component);
+#define GAME_COMPONENT(T,C,E) ::CAGE_JOIN(T, Component) &C = (E)->value<::CAGE_JOIN(T, Component)>(::CAGE_JOIN(T, Component)::component);
 
-extern entityGroup *entitiesToDestroy;
+extern EntityGroup *entitiesToDestroy;
 extern vec3 playerPosition;
 
 #endif

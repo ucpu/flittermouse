@@ -11,12 +11,12 @@ using namespace cage;
 
 namespace
 {
-	holder<collisionData> collisionSearchData;
-	holder<collisionQuery> collisionSearchQuery;
+	Holder<CollisionData> collisionSearchData;
+	Holder<CollisionQuery> collisionSearchQuery;
 
 	void engineInitialize()
 	{
-		collisionSearchData = newCollisionData(collisionDataCreateConfig());
+		collisionSearchData = newCollisionData(CollisionDataCreateConfig());
 		collisionSearchQuery = newCollisionQuery(collisionSearchData.get());
 	}
 
@@ -25,19 +25,19 @@ namespace
 		// nothing?
 	}
 
-	class callbacksInitClass
+	class Callbacks
 	{
-		eventListener<void()> engineInitListener;
-		eventListener<void()> engineUpdateListener;
+		EventListener<void()> engineInitListener;
+		EventListener<void()> engineUpdateListener;
 	public:
-		callbacksInitClass()
+		Callbacks()
 		{
 			engineInitListener.attach(controlThread().initialize);
 			engineInitListener.bind<&engineInitialize>();
 			engineUpdateListener.attach(controlThread().update);
 			engineUpdateListener.bind<&engineUpdate>();
 		}
-	} callbacksInitInstance;
+	} callbacksInstance;
 }
 
 vec3 terrainIntersection(const line &ln)
@@ -46,7 +46,7 @@ vec3 terrainIntersection(const line &ln)
 	if (collisionSearchQuery->name() == 0)
 		return vec3();
 	CAGE_ASSERT(collisionSearchQuery->collisionPairs().size() == 1);
-	const collisionMesh *c = nullptr;
+	const CollisionMesh *c = nullptr;
 	transform tr;
 	collisionSearchQuery->collider(c, tr);
 	triangle t = c->triangles()[collisionSearchQuery->collisionPairs()[0].b];
@@ -56,7 +56,7 @@ vec3 terrainIntersection(const line &ln)
 	return r;
 }
 
-void terrainAddCollider(uint32 name, collisionMesh *c, const transform &tr)
+void terrainAddCollider(uint32 name, CollisionMesh *c, const transform &tr)
 {
 	CAGE_ASSERT(tr.valid());
 	CAGE_ASSERT(c);

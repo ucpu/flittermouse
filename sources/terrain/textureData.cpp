@@ -6,18 +6,18 @@
 #include <cage-core/color.h>
 #include <cage-core/random.h>
 
-holder<noiseFunction> newClouds(uint32 seed, uint32 octaves)
+Holder<NoiseFunction> newClouds(uint32 seed, uint32 octaves)
 {
-	noiseFunctionCreateConfig cfg;
+	NoiseFunctionCreateConfig cfg;
 	cfg.octaves = octaves;
-	cfg.type = noiseTypeEnum::Value;
+	cfg.type = NoiseTypeEnum::Value;
 	cfg.seed = seed;
 	return newNoiseFunction(cfg);
 }
 
 uint32 globalSeed()
 {
-	static const uint32 s = (uint32)currentRandomGenerator().next();
+	static const uint32 s = (uint32)detail::getApplicationRandomGenerator().next();
 	return s;
 }
 
@@ -39,12 +39,12 @@ namespace
 		return rescale(clamp(v, 0.45, 0.55), 0.45, 0.55, 0, 1);
 	}
 
-	holder<noiseFunction> colorNoise1 = newClouds(globalSeed() + 3, 3);
-	holder<noiseFunction> colorNoise2 = newClouds(globalSeed() + 4, 2);
-	holder<noiseFunction> colorNoise3 = newClouds(globalSeed() + 5, 4);
+	Holder<NoiseFunction> colorNoise1 = newClouds(globalSeed() + 3, 3);
+	Holder<NoiseFunction> colorNoise2 = newClouds(globalSeed() + 4, 2);
+	Holder<NoiseFunction> colorNoise3 = newClouds(globalSeed() + 5, 4);
 }
 
-void textureData(holder<image> &albedo, holder<image> &special, std::vector<vec3> &positions, std::vector<vec3> &normals, std::vector<uint32> &xs, std::vector<uint32> &ys)
+void textureData(Holder<Image> &albedo, Holder<Image> &special, std::vector<vec3> &positions, std::vector<vec3> &normals, std::vector<uint32> &xs, std::vector<uint32> &ys)
 {
 	OPTICK_EVENT("textureData");
 	OPTICK_TAG("count", positions.size());

@@ -7,25 +7,25 @@
 
 #include "../common.h"
 
-struct tilePosStruct
+struct TilePos
 {
 	sint32 x, y, z; // center at the finest level
 	sint32 radius;
 	bool visible;
 
-	tilePosStruct();
+	TilePos();
 	aabb getBox() const; // aabb in world space
 	transform getTransform() const;
 	real distanceToPlayer() const;
-	bool operator < (const tilePosStruct &other) const;
+	bool operator < (const TilePos &other) const;
 };
 
-inline stringizer &operator + (stringizer &s, const tilePosStruct &p)
+inline stringizer &operator + (stringizer &s, const TilePos &p)
 {
 	return s + p.x + " " + p.y + " " + p.z + " " + p.radius;
 }
 
-struct vertexStruct
+struct Vertex
 {
 	vec3 position;
 	vec3 normal;
@@ -34,11 +34,11 @@ struct vertexStruct
 	vec2 uv;
 };
 
-std::set<tilePosStruct> findNeededTiles(const std::set<tilePosStruct> &tilesReady);
-void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<image> &albedo, holder<image> &special);
-void textureData(holder<image> &albedo, holder<image> &special, std::vector<vec3> &positions, std::vector<vec3> &normals, std::vector<uint32> &xs, std::vector<uint32> &ys);
-void imageInpaint(image *img, uint32 radius);
-holder<noiseFunction> newClouds(uint32 seed, uint32 octaves);
+std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady);
+void terrainGenerate(const TilePos &tilePos, std::vector<Vertex> &meshVertices, std::vector<uint32> &meshIndices, Holder<Image> &albedo, Holder<Image> &special);
+void textureData(Holder<Image> &albedo, Holder<Image> &special, std::vector<vec3> &positions, std::vector<vec3> &normals, std::vector<uint32> &xs, std::vector<uint32> &ys);
+void imageInpaint(Image *img, uint32 radius);
+Holder<NoiseFunction> newClouds(uint32 seed, uint32 octaves);
 uint32 globalSeed();
 
 #endif // !baseTile_h_dsfg7d8f5

@@ -29,10 +29,10 @@ namespace
 		xatlas::Destroy((xatlas::Atlas*)ptr);
 	}
 
-	inline holder<xatlas::Atlas> newAtlas()
+	inline Holder<xatlas::Atlas> newAtlas()
 	{
 		xatlas::Atlas *a = xatlas::Create();
-		return holder<xatlas::Atlas>(a, a, delegate<void(void*)>().bind<&destroyAtlas>());
+		return Holder<xatlas::Atlas>(a, a, Delegate<void(void*)>().bind<&destroyAtlas>());
 	}
 #endif
 
@@ -69,16 +69,6 @@ namespace
 		return b[0] >= 0 && b[1] >= 0 && b[0] + b[1] <= 1;
 	}
 
-	ivec2 operator + (const ivec2 &a, const ivec2 &b)
-	{
-		return ivec2(a.x + b.x, a.y + b.y);
-	}
-
-	ivec2 operator - (const ivec2 &a, const ivec2 &b)
-	{
-		return ivec2(a.x - b.x, a.y - b.y);
-	}
-
 	ivec2 operator * (const ivec2 &a, float b)
 	{
 		return ivec2(sint32(a.x * b), sint32(a.y * b));
@@ -91,20 +81,20 @@ namespace
 		std::swap(b, c); // bca
 	}
 
-	holder<noiseFunction> densityNoise1 = newClouds(globalSeed() + 1, 3);
-	holder<noiseFunction> densityNoise2 = newClouds(globalSeed() + 2, 3);
+	Holder<NoiseFunction> densityNoise1 = newClouds(globalSeed() + 1, 3);
+	Holder<NoiseFunction> densityNoise2 = newClouds(globalSeed() + 2, 3);
 
-	struct meshGenStruct
+	struct MeshGen
 	{
-		const tilePosStruct tilePos;
+		const TilePos tilePos;
 		transform tr;
 		std::vector<real> densities;
 		std::vector<dualmc::Vertex> mcVertices;
 		std::vector<dualmc::Quad> mcIndices;
-		std::vector<vertexStruct> &meshVertices;
+		std::vector<Vertex> &meshVertices;
 		std::vector<uint32> &meshIndices;
 #ifdef UV_MODE_XATLAS
-		holder<xatlas::Atlas> atlas;
+		Holder<xatlas::Atlas> atlas;
 #endif
 		uint32 texWidth, texHeight;
 
@@ -120,7 +110,7 @@ namespace
 			return tr.scale * p + tr.position;
 		}
 
-		meshGenStruct(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices) : tilePos(tilePos), meshVertices(meshVertices), meshIndices(meshIndices), texWidth(0), texHeight(0)
+		MeshGen(const TilePos &tilePos, std::vector<Vertex> &meshVertices, std::vector<uint32> &meshIndices) : tilePos(tilePos), meshVertices(meshVertices), meshIndices(meshIndices), texWidth(0), texHeight(0)
 		{
 			tr = tilePos.getTransform();
 		}
@@ -171,7 +161,7 @@ namespace
 			meshVertices.reserve(mcVertices.size());
 			for (const auto &it : mcVertices)
 			{
-				vertexStruct v;
+				Vertex v;
 				v.position = m2l(it);
 				meshVertices.push_back(v);
 			}
@@ -210,7 +200,7 @@ namespace
 			vec3 b = meshVertices[bi].position;
 			real pu = (value - a[axis]) / (b[axis] - a[axis]);
 			CAGE_ASSERT(pu >= 0 && pu <= 1);
-			vertexStruct v;
+			Vertex v;
 			v.position = interpolate(a, b, pu);
 			v.normal = normalize(interpolate(meshVertices[ai].normal, meshVertices[bi].normal, pu));
 			uint32 res = numeric_cast<uint32>(meshVertices.size());
@@ -408,8 +398,8 @@ namespace
 				decl.vertexCount = numeric_cast<uint32>(meshVertices.size());
 				decl.vertexPositionData = &meshVertices[0].position;
 				decl.vertexNormalData = &meshVertices[0].normal;
-				decl.vertexPositionStride = sizeof(vertexStruct);
-				decl.vertexNormalStride = sizeof(vertexStruct);
+				decl.vertexPositionStride = sizeof(Vertex);
+				decl.vertexNormalStride = sizeof(Vertex);
 				xatlas::AddMesh(atlas.get(), decl);
 			}
 
@@ -438,14 +428,14 @@ namespace
 
 			{
 				OPTICK_EVENT("apply");
-				std::vector<vertexStruct> vs;
+				std::vector<Vertex> vs;
 				xatlas::Mesh *m = atlas->meshes;
 				vs.reserve(m->vertexCount);
 				const vec2 whInv = 1 / vec2(atlas->width - 1, atlas->height - 1);
 				for (uint32 i = 0; i < m->vertexCount; i++)
 				{
 					const xatlas::Vertex &a = m->vertexArray[i];
-					vertexStruct v;
+					Vertex v;
 					v.position = meshVertices[a.xref].position;
 					v.normal = meshVertices[a.xref].normal;
 					v.uv = vec2(a.uv[0], a.uv[1]) * whInv;
@@ -469,7 +459,7 @@ namespace
 		{
 			OPTICK_EVENT("genUvs");
 
-			uint32 count = meshIndices.size();
+			uint32 count = numeric_cast<uint32>(meshIndices.size());
 			std::vector<vec3> pos;
 			pos.reserve(count);
 			for (uint32 i = 0; i < count; i += 3)
@@ -497,13 +487,13 @@ namespace
 			texWidth = w;
 			texHeight = h;
 
-			std::vector<vertexStruct> vs;
+			std::vector<Vertex> vs;
 			vs.reserve(count);
 			for (uint32 i = 0; i < count; i += 3)
 			{
 				for (uint32 j = 0; j < 3; j++)
 				{
-					vertexStruct v = meshVertices[meshIndices[i + j]];
+					Vertex v = meshVertices[meshIndices[i + j]];
 					v.uv = uvs[i + j];
 					vs.push_back(v);
 				}
@@ -522,7 +512,7 @@ namespace
 		}
 #endif
 
-		void genTextures(holder<image> &albedo, holder<image> &special)
+		void genTextures(Holder<Image> &albedo, Holder<Image> &special)
 		{
 			OPTICK_EVENT("genTextures");
 			OPTICK_TAG("width", texWidth);
@@ -540,7 +530,7 @@ namespace
 			std::vector<triangle> triUvs;
 			{
 				OPTICK_EVENT("prepTris");
-				const uint32 triCount = meshIndices.size() / 3;
+				const uint32 triCount = numeric_cast<uint32>(meshIndices.size()) / 3;
 				triPos.reserve(triCount);
 				triNorms.reserve(triCount);
 				triUvs.reserve(triCount);
@@ -552,7 +542,7 @@ namespace
 					const uint32 *ids = meshIndices.data() + triIdx * 3;
 					for (uint32 i = 0; i < 3; i++)
 					{
-						const vertexStruct &v = meshVertices[ids[i]];
+						const Vertex &v = meshVertices[ids[i]];
 						p[i] = l2w(v.position);
 						n[i] = v.normal;
 						u[i] = vec3(v.uv, 0);
@@ -575,7 +565,7 @@ namespace
 				ys.reserve(w * h);
 				const vec2 whInv = 1 / vec2(w - 1, h - 1);
 
-				const uint32 triCount = meshIndices.size() / 3;
+				const uint32 triCount = numeric_cast<uint32>(meshIndices.size()) / 3;
 				for (uint32 triIdx = 0; triIdx < triCount; triIdx++)
 				{
 					const uint32 *vertIds = meshIndices.data() + triIdx * 3;
@@ -632,7 +622,7 @@ namespace
 		va_start(arg, format);
 		auto result = vsprintf(buffer, format, arg);
 		va_end(arg);
-		CAGE_LOG_DEBUG(severityEnum::Warning, "xatlas", buffer);
+		CAGE_LOG_DEBUG(SeverityEnum::Warning, "xatlas", buffer);
 		return result;
 	}
 
@@ -647,10 +637,10 @@ namespace
 #endif
 }
 
-void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &meshVertices, std::vector<uint32> &meshIndices, holder<image> &albedo, holder<image> &special)
+void terrainGenerate(const TilePos &tilePos, std::vector<Vertex> &meshVertices, std::vector<uint32> &meshIndices, Holder<Image> &albedo, Holder<Image> &special)
 {
 	OPTICK_EVENT("terrainGenerate");
-	meshGenStruct generator(tilePos, meshVertices, meshIndices);
+	MeshGen generator(tilePos, meshVertices, meshIndices);
 	generator.genDensities();
 	generator.genSurface();
 	if (generator.mcIndices.size() == 0)
@@ -670,5 +660,5 @@ void terrainGenerate(const tilePosStruct &tilePos, std::vector<vertexStruct> &me
 		imageInpaint(albedo.get(), 3);
 		imageInpaint(special.get(), 3);
 	}
-	CAGE_LOG_DEBUG(severityEnum::Info, "generator", stringizer() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
+	CAGE_LOG_DEBUG(SeverityEnum::Info, "generator", stringizer() + "generated mesh with " + meshVertices.size() + " vertices, " + meshIndices.size() + " indices and texture resolution: " + albedo->width() + "x" + albedo->height());
 }

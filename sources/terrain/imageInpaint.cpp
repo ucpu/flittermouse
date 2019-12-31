@@ -25,12 +25,12 @@ namespace
 		return a.y == b.y ? a.x < b.x : a.y < b.y;
 	}
 
-	struct bits
+	struct Bits
 	{
 		std::vector<bool> data;
 		uint32 w;
 
-		bits(uint32 w, uint32 h) : w(w)
+		Bits(uint32 w, uint32 h) : w(w)
 		{
 			data.resize(w * h, false);
 		}
@@ -47,11 +47,11 @@ namespace
 	};
 
 	template<class T>
-	struct inpainter
+	struct Inpainter
 	{
-		image *const img;
+		Image *const img;
 		uint8 *const imgData;
-		bits bts;
+		Bits bts;
 		const uint32 channels;
 		const sint32 w;
 		const sint32 h;
@@ -101,13 +101,13 @@ namespace
 			return t / cnt;
 		}
 
-		inpainter(image *img, uint32 radius) : img(img), imgData((uint8*)img->bufferData()), bts(img->width(), img->height()), channels(img->channels()), w(img->width()), h(img->height())
+		Inpainter(Image *img, uint32 radius) : img(img), imgData((uint8*)img->bufferData()), bts(img->width(), img->height()), channels(img->channels()), w(img->width()), h(img->height())
 		{
 			OPTICK_EVENT("imageInpaint");
 			std::vector<ivec2> borders;
 			borders.reserve(w * h / 10);
 
-			{ // fill in the bits
+			{ // fill in the Bits
 				OPTICK_EVENT("fill bits");
 				for (sint32 y = 0; y < h; y++)
 				{
@@ -141,7 +141,7 @@ namespace
 			{
 				OPTICK_EVENT("iteration");
 				OPTICK_TAG("count", borders.size());
-				inpaintTotal += borders.size();
+				inpaintTotal += numeric_cast<uint32>(borders.size());
 
 				std::vector<T> colors;
 				colors.reserve(borders.size());
@@ -165,7 +165,7 @@ namespace
 				{ // expand borders
 					std::vector<ivec2> bs;
 					bs.reserve(borders.size() * 2);
-					bits bts2 = bts;
+					Bits bts2 = bts;
 					for (const ivec2 &it : borders)
 					{
 #define TEST(X, Y) if (in(it.x + X, it.y + Y)) { ivec2 b; b.x = it.x + X; b.y = it.y + Y; if (!bts2.get(b.x, b.y)) { bs.push_back(b); bts2.set(b.x, b.y); } }
@@ -188,16 +188,16 @@ namespace
 	};
 }
 
-void imageInpaint(image *img, uint32 radius)
+void imageInpaint(Image *img, uint32 radius)
 {
 	if (!img)
 		return;
 	CAGE_ASSERT(img->bytesPerChannel() == 1);
 	switch (img->channels())
 	{
-	case 1: inpainter<real>(img, radius); break;
-	case 2: inpainter<vec2>(img, radius); break;
-	case 3: inpainter<vec3>(img, radius); break;
-	case 4: inpainter<vec4>(img, radius); break;
+	case 1: Inpainter<real>(img, radius); break;
+	case 2: Inpainter<vec2>(img, radius); break;
+	case 3: Inpainter<vec3>(img, radius); break;
+	case 4: Inpainter<vec4>(img, radius); break;
 	}
 }
