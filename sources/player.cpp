@@ -27,9 +27,9 @@ namespace
 	{
 		OPTICK_EVENT("player");
 
-		uint64 time = currentControlTime();
-		CAGE_COMPONENT_ENGINE(Transform, ct, entities()->get(1));
-		CAGE_COMPONENT_ENGINE(Transform, pt, entities()->get(10));
+		uint64 time = engineControlTime();
+		CAGE_COMPONENT_ENGINE(Transform, ct, engineEntities()->get(1));
+		CAGE_COMPONENT_ENGINE(Transform, pt, engineEntities()->get(10));
 
 		{ // rotate camera
 			quat q = quat(degs(-mouseMoved[1]), degs(-mouseMoved[0]), degs(mouseMoved[2] * 20));
@@ -51,7 +51,7 @@ namespace
 		}
 
 		{ // update camera position
-			CAGE_COMPONENT_ENGINE(Transform, ct, entities()->get(1));
+			CAGE_COMPONENT_ENGINE(Transform, ct, engineEntities()->get(1));
 			ct.position = pt.position + ct.orientation * vec3(0, 0.05, 0.2);
 		}
 
@@ -101,10 +101,10 @@ namespace
 
 	ivec2 centerMouse()
 	{
-		ivec2 pt2 = window()->resolution();
+		ivec2 pt2 = engineWindow()->resolution();
 		pt2.x /= 2;
 		pt2.y /= 2;
-		window()->mousePosition(pt2);
+		engineWindow()->mousePosition(pt2);
 		return pt2;
 	}
 
@@ -136,7 +136,7 @@ namespace
 
 	void engineInitialize()
 	{
-		windowListeners.attachAll(window());
+		windowListeners.attachAll(engineWindow());
 		windowListeners.keyPress.bind<&keyPress>();
 		windowListeners.keyRelease.bind<&keyRelease>();
 		windowListeners.mousePress.bind<&mousePress>();
@@ -144,13 +144,13 @@ namespace
 		windowListeners.mouseWheel.bind<&mouseWheel>();
 
 		{ // the spaceship
-			Entity *e = entities()->create(10);
+			Entity *e = engineEntities()->create(10);
 			CAGE_COMPONENT_ENGINE(Render, r, e);
 			r.object = HashString("flittermouse/player/ship.object");
 		}
 
 		{ // camera
-			Entity *e = entities()->create(1);
+			Entity *e = engineEntities()->create(1);
 			CAGE_COMPONENT_ENGINE(Transform, t, e);
 			CAGE_COMPONENT_ENGINE(Camera, c, e);
 			c.near = 0.05;

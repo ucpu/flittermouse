@@ -34,14 +34,14 @@ int main(int argc, const char *args[])
 		log1->format.bind<logFormatConsole>();
 		log1->output.bind<logOutputStdOut>();
 
-		controlThread().timePerTick = 1000000 / 30;
 		engineInitialize(EngineCreateConfig());
-		assets()->add(HashString("flittermouse/flittermouse.pack"));
+		controlThread().updatePeriod(1000000 / 30);
+		engineAssets()->add(HashString("flittermouse/flittermouse.pack"));
 
 		EventListener<bool()> windowCloseListener;
 		windowCloseListener.bind<&windowClose>();
-		window()->events.windowClose.attach(windowCloseListener);
-		window()->title("flittermouse");
+		engineWindow()->events.windowClose.attach(windowCloseListener);
+		engineWindow()->title("flittermouse");
 
 		{
 			Holder<FullscreenSwitcher> fullscreen = newFullscreenSwitcher({});
@@ -51,7 +51,7 @@ int main(int argc, const char *args[])
 			engineStart();
 		}
 
-		assets()->remove(HashString("flittermouse/flittermouse.pack"));
+		engineAssets()->remove(HashString("flittermouse/flittermouse.pack"));
 		engineFinalize();
 		return 0;
 	}

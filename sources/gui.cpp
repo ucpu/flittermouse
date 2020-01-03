@@ -12,7 +12,7 @@ namespace
 
 	bool engineUpdate()
 	{
-		EntityManager *ents = gui()->entities();
+		EntityManager *ents = engineGui()->entities();
 
 		{ // player position
 			CAGE_COMPONENT_GUI(Text, t, ents->get(playerPositionLabel));
@@ -24,7 +24,7 @@ namespace
 
 	bool engineInitialize()
 	{
-		EntityManager *ents = gui()->entities();
+		EntityManager *ents = engineGui()->entities();
 
 		Entity *panel = nullptr;
 		{ // panel
