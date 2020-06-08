@@ -1,12 +1,3 @@
 [submodule "externals/cage"]
 	path = externals/cage
 	url = https://github.com/ucpu/cage.git
-[submodule "externals/dualmc"]
-	path = externals/dualmc
-	url = https://github.com/dominikwodniok/dualmc.git
-[submodule "externals/xatlas"]
-	path = externals/xatlas
-	url = https://github.com/jpcy/xatlas.git
-[submodule "externals/trianglepacker"]
-	path = externals/trianglepacker
-	url = https://github.com/ands/trianglepacker

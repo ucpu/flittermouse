@@ -1,19 +1,16 @@
 #ifndef baseTile_h_dsfg7d8f5
 #define baseTile_h_dsfg7d8f5
 
-#include <set>
-#include <vector>
-#include <array>
-
 #include "../common.h"
+
+#include <set>
 
 struct TilePos
 {
-	sint32 x, y, z; // center at the finest level
-	sint32 radius;
-	bool visible;
+	ivec3 pos; // center at the finest level
+	sint32 radius = 0;
+	bool visible = true;
 
-	TilePos();
 	aabb getBox() const; // aabb in world space
 	transform getTransform() const;
 	real distanceToPlayer() const;
@@ -22,23 +19,10 @@ struct TilePos
 
 inline stringizer &operator + (stringizer &s, const TilePos &p)
 {
-	return s + p.x + " " + p.y + " " + p.z + " " + p.radius;
+	return s + p.radius + "__" + p.pos[0] + "_" + p.pos[1] + "_" + p.pos[2];
 }
 
-struct Vertex
-{
-	vec3 position;
-	vec3 normal;
-	//vec3 tangent;
-	//vec3 bitangent;
-	vec2 uv;
-};
-
 std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady);
-void terrainGenerate(const TilePos &tilePos, std::vector<Vertex> &meshVertices, std::vector<uint32> &meshIndices, Holder<Image> &albedo, Holder<Image> &special);
-void textureData(Holder<Image> &albedo, Holder<Image> &special, std::vector<vec3> &positions, std::vector<vec3> &normals, std::vector<uint32> &xs, std::vector<uint32> &ys);
-void imageInpaint(Image *img, uint32 radius);
-Holder<NoiseFunction> newClouds(uint32 seed, uint32 octaves);
-uint32 globalSeed();
+void terrainGenerate(const TilePos &tilePos, Holder<Polyhedron> &mesh, Holder<Collider> &collider, Holder<Image> &albedo, Holder<Image> &special);
 
 #endif // !baseTile_h_dsfg7d8f5

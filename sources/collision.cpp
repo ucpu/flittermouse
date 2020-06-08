@@ -1,8 +1,8 @@
 #include "common.h"
 
 #include <cage-core/geometry.h>
-#include <cage-core/collisionMesh.h>
-#include <cage-core/collision.h>
+#include <cage-core/collider.h>
+#include <cage-core/collisionStructure.h>
 
 #include <cage-engine/core.h>
 #include <cage-engine/engine.h>
@@ -11,12 +11,12 @@ using namespace cage;
 
 namespace
 {
-	Holder<CollisionData> collisionSearchData;
+	Holder<CollisionStructure> collisionSearchData;
 	Holder<CollisionQuery> collisionSearchQuery;
 
 	void engineInitialize()
 	{
-		collisionSearchData = newCollisionData(CollisionDataCreateConfig());
+		collisionSearchData = newCollisionStructure({});
 		collisionSearchQuery = newCollisionQuery(collisionSearchData.get());
 	}
 
@@ -46,7 +46,7 @@ vec3 terrainIntersection(const line &ln)
 	if (collisionSearchQuery->name() == 0)
 		return vec3();
 	CAGE_ASSERT(collisionSearchQuery->collisionPairs().size() == 1);
-	const CollisionMesh *c = nullptr;
+	const Collider *c = nullptr;
 	transform tr;
 	collisionSearchQuery->collider(c, tr);
 	triangle t = c->triangles()[collisionSearchQuery->collisionPairs()[0].b];
@@ -56,7 +56,7 @@ vec3 terrainIntersection(const line &ln)
 	return r;
 }
 
-void terrainAddCollider(uint32 name, CollisionMesh *c, const transform &tr)
+void terrainAddCollider(uint32 name, Collider *c, const transform &tr)
 {
 	CAGE_ASSERT(tr.valid());
 	CAGE_ASSERT(c);

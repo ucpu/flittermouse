@@ -2,10 +2,10 @@
 
 #include <cage-core/geometry.h>
 #include <cage-core/entities.h>
-#include <cage-core/collisionMesh.h>
+#include <cage-core/collider.h>
 #include <cage-core/hashString.h>
 #include <cage-core/color.h>
-#include <cage-core/spatial.h>
+#include <cage-core/spatialStructure.h>
 #include <cage-core/variableSmoothingBuffer.h>
 
 #include <cage-engine/core.h>
@@ -102,8 +102,8 @@ namespace
 	ivec2 centerMouse()
 	{
 		ivec2 pt2 = engineWindow()->resolution();
-		pt2.x /= 2;
-		pt2.y /= 2;
+		pt2[0] /= 2;
+		pt2[1] /= 2;
 		engineWindow()->mousePosition(pt2);
 		return pt2;
 	}
@@ -120,8 +120,8 @@ namespace
 		if (b == MouseButtonsFlags::Left)
 		{
 			ivec2 c = centerMouse();
-			mouseMoved[0] += p.x - c.x;
-			mouseMoved[1] += p.y - c.y;
+			mouseMoved[0] += p[0] - c[0];
+			mouseMoved[1] += p[1] - c[1];
 		}
 		return false;
 	}
@@ -155,7 +155,7 @@ namespace
 			CAGE_COMPONENT_ENGINE(Camera, c, e);
 			c.near = 0.05;
 			c.far = 100;
-			c.ambientLight = vec3(0.01);
+			c.ambientIntensity = 0.01;
 			c.effects = CameraEffectsFlags::CombinedPass;
 			CAGE_COMPONENT_ENGINE(Light, l, e);
 			l.lightType = LightTypeEnum::Directional;

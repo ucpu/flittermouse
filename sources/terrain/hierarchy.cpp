@@ -1,5 +1,7 @@
 #include "terrain.h"
 
+#include <array>
+
 namespace
 {
 	std::array<TilePos, 8> children(const TilePos &pos)
@@ -9,9 +11,9 @@ namespace
 		{
 			res[i] = pos;
 			res[i].radius /= 2;
-			res[i].x += (((i / 1) % 2) == 0 ? -1 : 1) * res[i].radius;
-			res[i].y += (((i / 2) % 2) == 0 ? -1 : 1) * res[i].radius;
-			res[i].z += (((i / 2) / 2) == 0 ? -1 : 1) * res[i].radius;
+			res[i].pos[0] += (((i / 1) % 2) == 0 ? -1 : 1) * res[i].radius;
+			res[i].pos[1] += (((i / 2) % 2) == 0 ? -1 : 1) * res[i].radius;
+			res[i].pos[2] += (((i / 2) / 2) == 0 ? -1 : 1) * res[i].radius;
 		}
 		return res;
 	}
@@ -58,11 +60,11 @@ std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady)
 	OPTICK_EVENT("findNeededTiles");
 	std::set<TilePos> tilesRequests;
 	TilePos pt;
-	static const sint32 TileSize = 32;
-	pt.x = numeric_cast<sint32>(playerPosition[0] / TileSize) * TileSize;
-	pt.y = numeric_cast<sint32>(playerPosition[1] / TileSize) * TileSize;
-	pt.z = numeric_cast<sint32>(playerPosition[2] / TileSize) * TileSize;
-	static const sint32 Range = 2;
+	constexpr sint32 TileSize = 32;
+	pt.pos[0] = numeric_cast<sint32>(playerPosition[0] / TileSize) * TileSize;
+	pt.pos[1] = numeric_cast<sint32>(playerPosition[1] / TileSize) * TileSize;
+	pt.pos[2] = numeric_cast<sint32>(playerPosition[2] / TileSize) * TileSize;
+	constexpr sint32 Range = 2;
 	for (sint32 z = -Range; z <= Range; z += 1)
 	{
 		for (sint32 y = -Range; y <= Range; y += 1)
@@ -71,9 +73,9 @@ std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady)
 			{
 				TilePos r(pt);
 				r.radius = TileSize / 2;
-				r.x += TileSize * x;
-				r.y += TileSize * y;
-				r.z += TileSize * z;
+				r.pos[0] += TileSize * x;
+				r.pos[1] += TileSize * y;
+				r.pos[2] += TileSize * z;
 				traverse(r, tilesRequests, tilesReady);
 			}
 		}
