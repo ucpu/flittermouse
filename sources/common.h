@@ -22,5 +22,6 @@ struct TimeoutComponent
 
 extern EntityGroup *entitiesToDestroy;
 extern vec3 playerPosition;
+extern real terrainGenerationProgress;
 
 #endif

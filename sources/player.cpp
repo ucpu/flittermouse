@@ -14,6 +14,7 @@
 #include <cage-engine/window.h>
 
 vec3 playerPosition;
+real terrainGenerationProgress;
 
 namespace
 {

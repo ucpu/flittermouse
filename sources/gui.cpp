@@ -9,8 +9,9 @@
 namespace
 {
 	uint32 playerPositionLabel;
+	uint32 terrainGenerationProgressLabel;
 
-	bool engineUpdate()
+	void engineUpdate()
 	{
 		EntityManager *ents = engineGui()->entities();
 
@@ -19,10 +20,13 @@ namespace
 			t.value = stringizer() + playerPosition;
 		}
 
-		return false;
+		{ // terrain generation progress
+			CAGE_COMPONENT_GUI(Text, t, ents->get(terrainGenerationProgressLabel));
+			t.value = stringizer() + terrainGenerationProgress * 100 + " %";
+		}
 	}
 
-	bool engineInitialize()
+	void engineInitialize()
 	{
 		EntityManager *ents = engineGui()->entities();
 
@@ -58,13 +62,32 @@ namespace
 			}
 		}
 
-		return false;
+		{ // terrain generation progress
+			{ // label
+				Entity *e = ents->createUnique();
+				CAGE_COMPONENT_GUI(Parent, p, e);
+				p.parent = panel->name();
+				p.order = 3;
+				CAGE_COMPONENT_GUI(Label, l, e);
+				CAGE_COMPONENT_GUI(Text, t, e);
+				t.value = "Loading: ";
+			}
+			{ // value
+				Entity *e = ents->createUnique();
+				CAGE_COMPONENT_GUI(Parent, p, e);
+				p.parent = panel->name();
+				p.order = 4;
+				CAGE_COMPONENT_GUI(Label, l, e);
+				CAGE_COMPONENT_GUI(Text, t, e);
+				terrainGenerationProgressLabel = e->name();
+			}
+		}
 	}
 
 	class Callbacks
 	{
-		EventListener<bool()> engineInitListener;
-		EventListener<bool()> engineUpdateListener;
+		EventListener<void()> engineInitListener;
+		EventListener<void()> engineUpdateListener;
 	public:
 		Callbacks()
 		{

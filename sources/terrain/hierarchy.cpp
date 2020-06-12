@@ -81,5 +81,6 @@ std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady)
 		}
 	}
 	//CAGE_LOG_DEBUG(SeverityEnum::Info, "terrain", stringizer() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
+	terrainGenerationProgress = tilesRequests.empty() ? real() : real(tilesReady.size()) / tilesRequests.size();
 	return tilesRequests;
 }
