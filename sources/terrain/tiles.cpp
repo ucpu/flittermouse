@@ -99,11 +99,14 @@ namespace
 			// remove tiles
 			if (t.status == TileStateEnum::Ready && (!requested || stopping))
 			{
-				ass->remove(t.meshName);
-				ass->remove(t.albedoName);
-				ass->remove(t.specialName);
-				ass->remove(t.objectName);
-				t.entity->destroy();
+				if (t.entity)
+				{
+					ass->remove(t.meshName);
+					ass->remove(t.albedoName);
+					ass->remove(t.specialName);
+					ass->remove(t.objectName);
+					t.entity->destroy();
+				}
 				(TileBase&)t = TileBase();
 				t.status = TileStateEnum::Init;
 			}
@@ -278,13 +281,19 @@ namespace
 				continue;
 			}
 
+			terrainGenerate(t->pos, t->cpuMesh, t->cpuCollider, t->cpuAlbedo, t->cpuSpecial);
+			if (!t->cpuMesh)
+			{
+				t->status = TileStateEnum::Ready;
+				continue;
+			}
+
 			// assets names
 			t->albedoName = ass->generateUniqueName();
 			t->specialName = ass->generateUniqueName();
 			t->meshName = ass->generateUniqueName();
 			t->objectName = ass->generateUniqueName();
 
-			terrainGenerate(t->pos, t->cpuMesh, t->cpuCollider, t->cpuAlbedo, t->cpuSpecial);
 			generateRenderObject(*t);
 
 			t->status = TileStateEnum::Upload;

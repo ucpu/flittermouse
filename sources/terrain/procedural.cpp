@@ -24,12 +24,6 @@ namespace
 		return newNoiseFunction(cfg);
 	}
 
-	Holder<NoiseFunction> densityNoise1 = newClouds(globalSeed + 1, 3);
-	Holder<NoiseFunction> densityNoise2 = newClouds(globalSeed + 2, 3);
-	Holder<NoiseFunction> colorNoise1 = newClouds(globalSeed + 3, 3);
-	Holder<NoiseFunction> colorNoise2 = newClouds(globalSeed + 4, 2);
-	Holder<NoiseFunction> colorNoise3 = newClouds(globalSeed + 5, 4);
-
 	vec3 pdnToRgb(real h, real s, real v)
 	{
 		return colorHsvToRgb(vec3(h / 360, s / 100, v / 100));
@@ -56,79 +50,41 @@ namespace
 		uint32 textureResolution = 0;
 	};
 
-	real meshgenerator(ProcTile *t, const vec3 &pl)
+	real meshGenerator(ProcTile *t, const vec3 &pl)
 	{
-		vec3 p = t->pos.getTransform() * pl;
-		real a = densityNoise1->evaluate(p * 0.2);
-		real b = densityNoise2->evaluate(vec3(p[1], -p[2], p[0]) * 0.13);
-		return a - b;
-	}
-
-	void generateMesh(ProcTile &t)
-	{
-		OPTICK_EVENT("generateMesh");
-
+		static Holder<NoiseFunction> baseNoise = []()
 		{
-			MarchingCubesCreateConfig cfg;
-			cfg.resolutionX = cfg.resolutionY = cfg.resolutionZ = 16;
-			cfg.box = aabb(vec3(-1), vec3(1));
-			cfg.clip = false;
-			Holder<MarchingCubes> cubes = newMarchingCubes(cfg);
-			{
-				OPTICK_EVENT("densities");
-				cubes->updateByPosition(Delegate<real(const vec3 &)>().bind<ProcTile *, &meshgenerator>(&t));
-			}
-			{
-				OPTICK_EVENT("marchingCubes");
-				t.mesh = cubes->makePolyhedron();
-			}
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/1.obj");
-		}
-
+			NoiseFunctionCreateConfig cfg;
+			cfg.type = NoiseTypeEnum::Cubic;
+			cfg.seed = globalSeed + 741596574;
+			cfg.fractalType = NoiseFractalTypeEnum::RigidMulti;
+			cfg.octaves = 1;
+			cfg.frequency = 0.08;
+			return newNoiseFunction(cfg);
+		}();
+		static Holder<NoiseFunction> bumpsNoise = []()
 		{
-			//OPTICK_EVENT("simplify");
-			//PolyhedronSimplificationConfig cfg;
-			//cfg.minEdgeLength = 0.02;
-			//cfg.maxEdgeLength = 0.5;
-			//cfg.approximateError = 0.03;
-			//cfg.useProjection = false;
-			//t.mesh->simplify(cfg);
-			//t.mesh->discardInvalid(); // simplification occasionally generates nan points
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/2.obj");
-		}
+			NoiseFunctionCreateConfig cfg;
+			cfg.type = NoiseTypeEnum::Value;
+			cfg.fractalType = NoiseFractalTypeEnum::Fbm;
+			cfg.octaves = 3;
+			cfg.seed = globalSeed + 54646148;
+			cfg.frequency = 0.4;
+			return newNoiseFunction(cfg);
+		}();
 
-		{
-			OPTICK_EVENT("clip");
-			t.mesh->clip(aabb(vec3(-1.01), vec3(1.01)));
-			t.mesh->mergeCloseVertices(0.02); // clipping sometimes generates very small triangles
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/3.obj");
-		}
-
-		{
-			OPTICK_EVENT("unwrap");
-			PolyhedronUnwrapConfig cfg;
-			cfg.texelsPerUnit = 50.0f;
-			t.textureResolution = t.mesh->unwrap(cfg);
-			//CAGE_LOG(SeverityEnum::Info, "generator", stringizer() + "texture resolution: " + t.textureResolution + " (" + t.pos + ")");
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/4.obj");
-			CAGE_ASSERT(t.textureResolution <= 4096);
-		}
-
-		//auto msh = t.mesh->copy();
-		//msh->applyTransform(t.pos.getTransform());
-		//msh->exportObjFile({}, stringizer() + "debug/" + t.pos + ".obj");
-	}
-
-	void generateCollider(ProcTile &t)
-	{
-		OPTICK_EVENT("generateCollider");
-		t.collider = newCollider();
-		t.collider->importPolyhedron(t.mesh.get());
-		t.collider->rebuild();
+		const vec3 pt = t->pos.getTransform() * pl;
+		const real base = baseNoise->evaluate(pt) + 0.15;
+		const real bumps = bumpsNoise->evaluate(pt) * 0.05;
+		return base + bumps;
 	}
 
 	void textureGenerator(ProcTile *t, uint32 x, uint32 y, const ivec3 &idx, const vec3 &weights)
 	{
+		static Holder<NoiseFunction> colorNoise1 = newClouds(globalSeed + 3, 3);
+		static Holder<NoiseFunction> colorNoise2 = newClouds(globalSeed + 4, 2);
+		static Holder<NoiseFunction> colorNoise3 = newClouds(globalSeed + 5, 4);
+
 		vec3 position = t->mesh->positionAt(idx, weights) * t->pos.getTransform();
 
 		static const vec3 colors[] = {
@@ -157,13 +113,85 @@ namespace
 		t->special->set(x, y, vec2(0.8, 0.002));
 	}
 
+	void generateMesh(ProcTile &t)
+	{
+		OPTICK_EVENT("generateMesh");
+
+		{
+			MarchingCubesCreateConfig cfg;
+			cfg.resolutionX = cfg.resolutionY = cfg.resolutionZ = 16;
+			cfg.box = aabb(vec3(-1), vec3(1));
+			cfg.clip = false;
+			Holder<MarchingCubes> cubes = newMarchingCubes(cfg);
+			{
+				OPTICK_EVENT("densities");
+				cubes->updateByPosition(Delegate<real(const vec3 &)>().bind<ProcTile *, &meshGenerator>(&t));
+			}
+			{
+				OPTICK_EVENT("marchingCubes");
+				t.mesh = cubes->makePolyhedron();
+			}
+			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/1.obj");
+		}
+
+		{
+			//OPTICK_EVENT("simplify");
+			//PolyhedronSimplificationConfig cfg;
+			//cfg.minEdgeLength = 0.02;
+			//cfg.maxEdgeLength = 0.5;
+			//cfg.approximateError = 0.03;
+			//cfg.useProjection = false;
+			//t.mesh->simplify(cfg);
+			//t.mesh->discardInvalid(); // simplification occasionally generates nan points
+			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/2.obj");
+		}
+
+		{
+			OPTICK_EVENT("clip");
+			t.mesh->clip(aabb(vec3(-1.01), vec3(1.01)));
+			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/3.obj");
+		}
+
+		{ // clipping sometimes generates very small triangles
+			OPTICK_EVENT("merge vertices");
+			t.mesh->mergeCloseVertices(0.02);
+			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/4.obj");
+		}
+
+		{
+			OPTICK_EVENT("unwrap");
+			PolyhedronUnwrapConfig cfg;
+			cfg.texelsPerUnit = 50.0f;
+			t.textureResolution = t.mesh->unwrap(cfg);
+			//CAGE_LOG(SeverityEnum::Info, "generator", stringizer() + "texture resolution: " + t.textureResolution + " (" + t.pos + ")");
+			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/5.obj");
+			CAGE_ASSERT(t.textureResolution <= 2048);
+			if (t.textureResolution == 0)
+				t.mesh->clear();
+		}
+
+		//auto msh = t.mesh->copy();
+		//msh->applyTransform(t.pos.getTransform());
+		//msh->exportObjFile({}, stringizer() + "debug/" + t.pos + ".obj");
+	}
+
+	void generateCollider(ProcTile &t)
+	{
+		OPTICK_EVENT("generateCollider");
+		t.collider = newCollider();
+		t.collider->importPolyhedron(t.mesh.get());
+		t.collider->rebuild();
+	}
+
 	void generateTextures(ProcTile &t)
 	{
+		CAGE_ASSERT(t.textureResolution > 0);
 		OPTICK_EVENT("generateTextures");
 		t.albedo = newImage();
 		t.albedo->initialize(t.textureResolution, t.textureResolution, 3);
 		t.special = newImage();
 		t.special->initialize(t.textureResolution, t.textureResolution, 2);
+		t.special->colorConfig.gammaSpace = GammaSpaceEnum::Linear;
 		PolyhedronTextureGenerationConfig cfg;
 		cfg.generator.bind<ProcTile *, &textureGenerator>(&t);
 		cfg.width = cfg.height = t.textureResolution;
@@ -173,7 +201,6 @@ namespace
 			t.albedo->inpaint(2);
 			t.special->inpaint(2);
 		}
-		t.special->colorConfig.gammaSpace = GammaSpaceEnum::Linear;
 
 		//auto tex = t.albedo->copy();
 		//tex->verticalFlip();
@@ -189,6 +216,8 @@ void terrainGenerate(const TilePos &tilePos, Holder<Polyhedron> &mesh, Holder<Co
 	t.pos = tilePos;
 
 	generateMesh(t);
+	if (t.mesh->facesCount() == 0)
+		return;
 	generateCollider(t);
 	generateTextures(t);
 
