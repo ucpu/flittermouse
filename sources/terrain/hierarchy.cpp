@@ -80,6 +80,6 @@ std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady)
 			}
 		}
 	}
-	CAGE_LOG_DEBUG(SeverityEnum::Info, "terrain", stringizer() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
+	//CAGE_LOG_DEBUG(SeverityEnum::Info, "terrain", stringizer() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
 	return tilesRequests;
 }

@@ -88,7 +88,7 @@ namespace
 		{
 			//OPTICK_EVENT("simplify");
 			//PolyhedronSimplificationConfig cfg;
-			//cfg.minEdgeLength = 0.01;
+			//cfg.minEdgeLength = 0.02;
 			//cfg.maxEdgeLength = 0.5;
 			//cfg.approximateError = 0.03;
 			//cfg.useProjection = false;
@@ -100,7 +100,7 @@ namespace
 		{
 			OPTICK_EVENT("clip");
 			t.mesh->clip(aabb(vec3(-1.01), vec3(1.01)));
-			t.mesh->discardInvalid(); // clipping sometimes generates very small triangles
+			t.mesh->mergeCloseVertices(0.02); // clipping sometimes generates very small triangles
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/3.obj");
 		}
 
@@ -109,6 +109,7 @@ namespace
 			PolyhedronUnwrapConfig cfg;
 			cfg.texelsPerUnit = 50.0f;
 			t.textureResolution = t.mesh->unwrap(cfg);
+			//CAGE_LOG(SeverityEnum::Info, "generator", stringizer() + "texture resolution: " + t.textureResolution + " (" + t.pos + ")");
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/4.obj");
 			CAGE_ASSERT(t.textureResolution <= 4096);
 		}
