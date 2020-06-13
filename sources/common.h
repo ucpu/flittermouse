@@ -10,6 +10,7 @@ using namespace cage;
 vec3 terrainIntersection(const line &ln);
 void terrainAddCollider(uint32 name, Collider *c, const transform &tr);
 void terrainRemoveCollider(uint32 name);
+void terrainRebuildColliders();
 
 struct TimeoutComponent
 {

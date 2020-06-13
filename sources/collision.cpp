@@ -13,6 +13,7 @@ namespace
 {
 	Holder<CollisionStructure> collisionSearchData;
 	Holder<CollisionQuery> collisionSearchQuery;
+	bool collisionSearchNeedsRebuild;
 
 	void engineInitialize()
 	{
@@ -44,7 +45,7 @@ vec3 terrainIntersection(const line &ln)
 {
 	collisionSearchQuery->query(ln);
 	if (collisionSearchQuery->name() == 0)
-		return vec3();
+		return vec3::Nan();
 	CAGE_ASSERT(collisionSearchQuery->collisionPairs().size() == 1);
 	const Collider *c = nullptr;
 	transform tr;
@@ -62,11 +63,20 @@ void terrainAddCollider(uint32 name, Collider *c, const transform &tr)
 	CAGE_ASSERT(c);
 	CAGE_ASSERT(c->box().valid());
 	collisionSearchData->update(name, c, tr);
-	collisionSearchData->rebuild();
+	collisionSearchNeedsRebuild = true;
 }
 
 void terrainRemoveCollider(uint32 name)
 {
 	collisionSearchData->remove(name);
+	collisionSearchNeedsRebuild = true;
+}
+
+void terrainRebuildColliders()
+{
+	if (!collisionSearchNeedsRebuild)
+		return;
+	collisionSearchNeedsRebuild = false;
+	OPTICK_EVENT("terrainRebuildColliders");
 	collisionSearchData->rebuild();
 }

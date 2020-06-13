@@ -147,6 +147,8 @@ namespace
 				t.pos.visible = false;
 		}
 
+		terrainRebuildColliders();
+
 		// generate new needed tiles
 		for (Tile &t : tiles)
 		{

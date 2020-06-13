@@ -148,6 +148,14 @@ namespace
 			Entity *e = engineEntities()->create(10);
 			CAGE_COMPONENT_ENGINE(Render, r, e);
 			r.object = HashString("flittermouse/player/ship.object");
+			CAGE_COMPONENT_ENGINE(Light, l, e);
+			l.lightType = LightTypeEnum::Spot;
+			l.color = vec3(1);
+			l.intensity = 10;
+			l.attenuation = vec3(0, 0, 0.05);
+			CAGE_COMPONENT_ENGINE(Shadowmap, s, e);
+			s.resolution = 2048;
+			s.worldSize = vec3(0.1, 100, 0);
 		}
 
 		{ // camera
@@ -155,12 +163,11 @@ namespace
 			CAGE_COMPONENT_ENGINE(Transform, t, e);
 			CAGE_COMPONENT_ENGINE(Camera, c, e);
 			c.near = 0.05;
-			c.far = 100;
+			c.far = 200;
+			c.ambientColor = c.ambientDirectionalColor = vec3(1);
 			c.ambientIntensity = 0.01;
+			c.ambientDirectionalIntensity = 0.07;
 			c.effects = CameraEffectsFlags::CombinedPass;
-			CAGE_COMPONENT_ENGINE(Light, l, e);
-			l.lightType = LightTypeEnum::Directional;
-			l.color = vec3(1);
 		}
 	}
 

@@ -110,7 +110,7 @@ namespace
 		color = colorHsvToRgb(clamp(hsv, vec3(0), vec3(1)));
 
 		t->albedo->set(x, y, color);
-		t->special->set(x, y, vec2(0.8, 0.002));
+		t->special->set(x, y, vec2(0.5, 0.0));
 	}
 
 	void generateMesh(ProcTile &t)
@@ -130,6 +130,7 @@ namespace
 			{
 				OPTICK_EVENT("marchingCubes");
 				t.mesh = cubes->makePolyhedron();
+				OPTICK_TAG("Faces", t.mesh->facesCount());
 			}
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/1.obj");
 		}
@@ -168,6 +169,8 @@ namespace
 			CAGE_ASSERT(t.textureResolution <= 2048);
 			if (t.textureResolution == 0)
 				t.mesh->clear();
+			OPTICK_TAG("Faces", t.mesh->facesCount());
+			OPTICK_TAG("Resolution", t.textureResolution);
 		}
 
 		//auto msh = t.mesh->copy();
@@ -195,7 +198,10 @@ namespace
 		PolyhedronTextureGenerationConfig cfg;
 		cfg.generator.bind<ProcTile *, &textureGenerator>(&t);
 		cfg.width = cfg.height = t.textureResolution;
-		t.mesh->generateTexture(cfg);
+		{
+			OPTICK_EVENT("generating");
+			t.mesh->generateTexture(cfg);
+		}
 		{
 			OPTICK_EVENT("inpaint");
 			t.albedo->inpaint(2);
@@ -211,6 +217,7 @@ namespace
 void terrainGenerate(const TilePos &tilePos, Holder<Polyhedron> &mesh, Holder<Collider> &collider, Holder<Image> &albedo, Holder<Image> &special)
 {
 	OPTICK_EVENT("terrainGenerate");
+	OPTICK_TAG("Tile", (stringizer() + tilePos).value.c_str());
 	
 	ProcTile t;
 	t.pos = tilePos;
