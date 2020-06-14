@@ -15,11 +15,10 @@ void terrainRebuildColliders();
 struct TimeoutComponent
 {
 	static EntityComponent *component;
-	uint32 ttl;
-	TimeoutComponent();
+	uint32 ttl = 10;
 };
 
-#define GAME_COMPONENT(T, C, E) ::T##Component &C = E->value<::T##Component>(::T##Component::component);
+#define GAME_COMPONENT(T, C, E) T##Component &C = E->value<T##Component>(T##Component::component);
 
 extern EntityGroup *entitiesToDestroy;
 extern vec3 playerPosition;

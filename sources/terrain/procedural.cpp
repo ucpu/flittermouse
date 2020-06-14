@@ -59,7 +59,7 @@ namespace
 			cfg.seed = globalSeed + 741596574;
 			cfg.fractalType = NoiseFractalTypeEnum::RigidMulti;
 			cfg.octaves = 1;
-			cfg.frequency = 0.08;
+			cfg.frequency = 0.12;
 			return newNoiseFunction(cfg);
 		}();
 		static Holder<NoiseFunction> bumpsNoise = []()

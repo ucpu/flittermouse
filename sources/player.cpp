@@ -8,7 +8,6 @@
 #include <cage-core/spatialStructure.h>
 #include <cage-core/variableSmoothingBuffer.h>
 
-#include <cage-engine/core.h>
 #include <cage-engine/graphics.h>
 #include <cage-engine/engine.h>
 #include <cage-engine/window.h>
@@ -148,14 +147,6 @@ namespace
 			Entity *e = engineEntities()->create(10);
 			CAGE_COMPONENT_ENGINE(Render, r, e);
 			r.object = HashString("flittermouse/player/ship.object");
-			CAGE_COMPONENT_ENGINE(Light, l, e);
-			l.lightType = LightTypeEnum::Spot;
-			l.color = vec3(1);
-			l.intensity = 10;
-			l.attenuation = vec3(0, 0, 0.05);
-			CAGE_COMPONENT_ENGINE(Shadowmap, s, e);
-			s.resolution = 2048;
-			s.worldSize = vec3(0.1, 100, 0);
 		}
 
 		{ // camera
@@ -166,7 +157,7 @@ namespace
 			c.far = 200;
 			c.ambientColor = c.ambientDirectionalColor = vec3(1);
 			c.ambientIntensity = 0.01;
-			c.ambientDirectionalIntensity = 0.07;
+			c.ambientDirectionalIntensity = 0.2;
 			c.effects = CameraEffectsFlags::CombinedPass;
 		}
 	}

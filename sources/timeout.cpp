@@ -10,9 +10,6 @@
 EntityGroup *entitiesToDestroy;
 EntityComponent *TimeoutComponent::component;
 
-TimeoutComponent::TimeoutComponent() : ttl(0)
-{}
-
 namespace
 {
 	void engineUpdate()
