@@ -1,0 +1,11 @@
+
+[base]
+roughness = 0.2
+metallic = 1
+
+[mult]
+roughness = 0.8
+
+[textures]
+albedo = albedo.png
+special = special.png

@@ -2,3 +2,36 @@
 []
 scheme = pack
 player.pack
+
+[]
+scheme = mesh
+material = ship.cpm
+scale = 0.02
+ship.obj?hull
+ship.obj?magnet-prototype_magnet
+ship.obj?cannon-prototype-tower_cannon-tower
+ship.obj?cannon-prototype-muzzle_cannon-muzzle
+
+[]
+scheme = mesh
+material = sign.cpm
+scale = 0.02
+ship.obj?sign
+
+[]
+scheme = texture
+srgb = true
+sign.png
+albedo.png
+
+[]
+scheme = texture
+special.png
+
+[]
+scheme = object
+magnet.object
+muzzle.object
+ship.object
+tower.object
+

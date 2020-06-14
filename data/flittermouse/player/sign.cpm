@@ -1,0 +1,9 @@
+
+[base]
+roughness = 0.8
+emission = 0.1
+
+[textures]
+albedo = sign.png
+
+
