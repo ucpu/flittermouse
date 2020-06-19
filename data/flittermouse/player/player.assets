@@ -8,15 +8,21 @@ scheme = mesh
 material = ship.cpm
 scale = 0.02
 ship.obj?hull
-ship.obj?magnet-prototype_magnet
-ship.obj?cannon-prototype-tower_cannon-tower
-ship.obj?cannon-prototype-muzzle_cannon-muzzle
 
 []
 scheme = mesh
 material = sign.cpm
 scale = 0.02
 ship.obj?sign
+
+[]
+scheme = mesh
+material = ship.cpm
+scale = 0.02
+axes = +x+z-y
+ship.obj?magnet-prototype_magnet
+ship.obj?cannon-prototype-tower_cannon-tower
+ship.obj?cannon-prototype-muzzle_cannon-muzzle
 
 []
 scheme = texture

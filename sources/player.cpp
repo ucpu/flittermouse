@@ -157,7 +157,7 @@ namespace
 			c.far = 200;
 			c.ambientColor = c.ambientDirectionalColor = vec3(1);
 			c.ambientIntensity = 0.01;
-			c.ambientDirectionalIntensity = 0.2;
+			c.ambientDirectionalIntensity = 0.1;
 			c.effects = CameraEffectsFlags::CombinedPass;
 		}
 	}

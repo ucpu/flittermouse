@@ -2,6 +2,7 @@
 
 #include <cage-core/ini.h>
 #include <cage-core/entities.h>
+#include <cage-core/geometry.h>
 #include <cage-core/hashString.h>
 #include <cage-engine/engine.h>
 
@@ -120,39 +121,44 @@ rot=-1.5707963705062866,0.12163479626178741,0.12163452059030533
 
 namespace
 {
-	struct DoodadComponent : public transform
+	struct MagnetComponent
 	{
 		static EntityComponent *component;
+		transform model;
+		vec3 target;
 	};
 
-	EntityComponent *DoodadComponent::component;
-
-	void createGun(const vec3 &position, const quat &orientation)
+	struct LightComponent
 	{
-		{
-			Entity *e = engineEntities()->createAnonymous();
-			GAME_COMPONENT(Doodad, t, e);
-			t.position = position;
-			t.orientation = orientation;
-			CAGE_COMPONENT_ENGINE(Render, r, e);
-			r.object = HashString("flittermouse/player/tower.object");
-		}
-		{
-			Entity *e = engineEntities()->createAnonymous();
-			GAME_COMPONENT(Doodad, t, e);
-			t.position = position;
-			t.orientation = orientation;
-			CAGE_COMPONENT_ENGINE(Render, r, e);
-			r.object = HashString("flittermouse/player/muzzle.object");
-		}
-	}
+		static EntityComponent *component;
+		transform model;
+		vec3 target;
+	};
+
+	struct GunMuzzleComponent
+	{
+		static EntityComponent *component;
+		transform model;
+	};
+
+	struct GunTowerComponent
+	{
+		static EntityComponent *component;
+		Entity *muzzle = nullptr;
+	};
+
+	EntityComponent *MagnetComponent::component;
+	EntityComponent *LightComponent::component;
+	EntityComponent *GunMuzzleComponent::component;
+	EntityComponent *GunTowerComponent::component;
 
 	void createMagnet(const vec3 &position, const quat &orientation)
 	{
 		Entity *e = engineEntities()->createAnonymous();
-		GAME_COMPONENT(Doodad, t, e);
-		t.position = position;
-		t.orientation = orientation;
+		GAME_COMPONENT(Magnet, t, e);
+		t.model.position = position;
+		t.model.orientation = orientation;
+		t.target = t.model.position + t.model.orientation * vec3(0, 0, -1);
 		CAGE_COMPONENT_ENGINE(Render, r, e);
 		r.object = HashString("flittermouse/player/magnet.object");
 	}
@@ -160,9 +166,10 @@ namespace
 	void createLight(const vec3 &position, const quat &orientation)
 	{
 		Entity *e = engineEntities()->createAnonymous();
-		GAME_COMPONENT(Doodad, t, e);
-		t.position = position;
-		t.orientation = orientation * quat(degs(90), degs(), degs());
+		GAME_COMPONENT(Light, t, e);
+		t.model.position = position;
+		t.model.orientation = orientation;
+		t.target = t.model.position + t.model.orientation * vec3(0, 0, -1);
 		CAGE_COMPONENT_ENGINE(Light, l, e);
 		l.lightType = LightTypeEnum::Spot;
 		l.color = vec3(1);
@@ -173,17 +180,142 @@ namespace
 		s.worldSize = vec3(0.1, 100, 0);
 	}
 
+	void createGun(const vec3 &position, const quat &orientation)
+	{
+		Entity *muzzle = nullptr;
+		{
+			Entity *e = muzzle = engineEntities()->createAnonymous();
+			GAME_COMPONENT(GunMuzzle, m, e);
+			m.model.position = position;
+			m.model.orientation = orientation;
+			CAGE_COMPONENT_ENGINE(Render, r, e);
+			r.object = HashString("flittermouse/player/muzzle.object");
+		}
+		{
+			Entity *e = engineEntities()->createAnonymous();
+			GAME_COMPONENT(GunTower, t, e);
+			t.muzzle = muzzle;
+			CAGE_COMPONENT_ENGINE(Render, r, e);
+			r.object = HashString("flittermouse/player/tower.object");
+		}
+	}
+
+	void aimAtClosestWallTarget(const vec3 &origin, const vec3 &initialDirection, vec3 &target, const rads maxDeviation, const uint32 maxAttempts, const real maxReach)
+	{
+		const real maxDeviDot = cos(maxDeviation);
+
+		const auto &check = [&](const vec3 &p) -> bool
+		{
+			real c = dot(normalize(p - origin), initialDirection);
+			return c > maxDeviDot;
+		};
+
+		const auto &reposition = [&](const vec3 &p) -> vec3
+		{
+			vec3 t = origin + normalize(p - origin) * maxReach;
+			vec3 q = terrainIntersection(makeSegment(origin, t));
+			return q.valid() ? q : t;
+		};
+
+		{
+			if (check(target))
+				target = reposition(target);
+			else
+				target = reposition(origin + initialDirection);
+			CAGE_ASSERT(target.valid() && check(target) && distance(origin, target) < maxReach + 1e-5);
+		}
+
+		{
+			for (uint32 attempt = 0; attempt < maxAttempts; attempt++)
+			{
+				vec3 p = target + randomDirection3();
+				while (!check(p))
+					p = target + randomDirection3();
+				p = reposition(p);
+				if (distanceSquared(origin, p) < distanceSquared(origin, target))
+					target = p;
+			}
+			CAGE_ASSERT(target.valid() && check(target) && distance(origin, target) < maxReach + 1e-5);
+		}
+	}
+
+	void magnetDischarge(const transform &tp, const transform &tc, const vec3 &pp, const vec3 &pc)
+	{
+		if (randomChance() > 1 / (1 + sqr(distanceSquared(pc, tc.position))))
+			return;
+		vec3 color = randomChance3() * 0.4 + vec3(0, 0, 0.4);
+		{ // laser
+			Entity *e = engineEntities()->createAnonymous();
+			GAME_COMPONENT(Timeout, to, e);
+			to.ttl = 1;
+			CAGE_COMPONENT_ENGINE(Render, r, e);
+			r.object = HashString("flittermouse/laser/laser.obj");
+			r.color = color;
+			r.intensity = 2;
+			TransformComponent &p = e->value<TransformComponent>(TransformComponent::componentHistory);
+			p.position = tp.position;
+			p.orientation = quat(pp - tp.position, vec3(0, 0, 1));
+			p.scale = distance(pp, tp.position);
+			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			t.position = tc.position;
+			t.orientation = quat(pc - tc.position, vec3(0, 0, 1));
+			t.scale = distance(pc, tc.position);
+		}
+		// lights
+		for (uint32 i = 0; i < 2; i++)
+		{
+			Entity *e = engineEntities()->createAnonymous();
+			GAME_COMPONENT(Timeout, to, e);
+			to.ttl = 1;
+			CAGE_COMPONENT_ENGINE(Light, l, e);
+			l.color = color;
+			l.attenuation = vec3(1, 0, 2);
+			TransformComponent &p = e->value<TransformComponent>(TransformComponent::componentHistory);
+			p.position = tp.position;
+			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			t.position = pc;
+		}
+	}
+
 	void engineUpdate()
 	{
 		OPTICK_EVENT("player doodads");
 		if (!engineEntities()->has(10))
 			return;
 		CAGE_COMPONENT_ENGINE(Transform, p, engineEntities()->get(10));
-		for (Entity *e : DoodadComponent::component->entities())
+		const TransformComponent &pp = engineEntities()->get(10)->value<TransformComponent>(TransformComponent::componentHistory);
+		for (Entity *e : MagnetComponent::component->entities())
 		{
-			GAME_COMPONENT(Doodad, d, e);
+			GAME_COMPONENT(Magnet, m, e);
+			const vec3 prevTarget = m.target;
 			CAGE_COMPONENT_ENGINE(Transform, t, e);
-			t = p * d;
+			const transform prevTrans = t;
+			t = p * m.model;
+			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), m.target, degs(40), 1, 5);
+			t.orientation = quat(normalize(m.target - t.position), t.orientation * vec3(0, 1, 0));
+			magnetDischarge(prevTrans, t, prevTarget, m.target);
+		}
+		for (Entity *e : LightComponent::component->entities())
+		{
+			GAME_COMPONENT(Light, l, e);
+			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			t = p * l.model;
+			//aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 10);
+			//t.orientation = quat(normalize(l.target - t.position), t.orientation * vec3(0, 1, 0));
+		}
+		for (Entity *e : GunMuzzleComponent::component->entities())
+		{
+			GAME_COMPONENT(GunMuzzle, gm, e);
+			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			t = p * gm.model;
+		}
+		for (Entity *e : GunTowerComponent::component->entities())
+		{
+			GAME_COMPONENT(GunTower, gt, e);
+			CAGE_COMPONENT_ENGINE(Transform, gm, gt.muzzle);
+			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			t = gm;
+			t.orientation = quat(t.orientation * vec3(0, 0, -1), t.orientation * vec3(0, 1, 0), true);
 		}
 	}
 
@@ -194,12 +326,15 @@ namespace
 
 	quat convRot(const vec3 &v)
 	{
-		return quat(rads(), rads(v[2]), rads()) * quat(rads(), rads(), rads(-v[1])) * quat(rads(v[0]), rads(), rads());
+		return quat(rads(), rads(v[2]), rads()) * quat(rads(), rads(), rads(-v[1])) * quat(rads(v[0]), rads(), rads()) * quat(degs(90), degs(), degs());
 	}
 
 	void engineInitialize()
 	{
-		DoodadComponent::component = engineEntities()->defineComponent(DoodadComponent(), true);
+		MagnetComponent::component = engineEntities()->defineComponent(MagnetComponent(), true);
+		LightComponent::component = engineEntities()->defineComponent(LightComponent(), true);
+		GunMuzzleComponent::component = engineEntities()->defineComponent(GunMuzzleComponent(), true);
+		GunTowerComponent::component = engineEntities()->defineComponent(GunTowerComponent(), true);
 		Holder<Ini> ini = newIni();
 		ini->importBuffer({ playerDoodadsPositionsIni, playerDoodadsPositionsIni + std::strlen(playerDoodadsPositionsIni) });
 		for (const string &s : ini->sections())
@@ -208,10 +343,10 @@ namespace
 			const quat r = convRot(vec3::parse(ini->getString(s, "rot")));
 			if (s.isPattern("", "magnet", ""))
 				createMagnet(p, r);
-			else if (s.isPattern("", "cannon", ""))
-				createGun(p, r);
 			else if (s.isPattern("", "light", ""))
 				createLight(p, r);
+			else if (s.isPattern("", "cannon", ""))
+				createGun(p, r);
 			else
 				CAGE_THROW_ERROR(Exception, "unknown player doodad");
 		}

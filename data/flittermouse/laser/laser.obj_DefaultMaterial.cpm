@@ -1,0 +1,7 @@
+[base]
+emission = 3
+mask = 1
+
+[flags]
+noLighting
+noShadowCast

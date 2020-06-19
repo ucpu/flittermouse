@@ -1,10 +1,11 @@
 #include "common.h"
 
+#include <cage-core/entities.h>
+#include <cage-core/hashString.h>
 #include <cage-core/geometry.h>
 #include <cage-core/collider.h>
 #include <cage-core/collisionStructure.h>
 
-#include <cage-engine/core.h>
 #include <cage-engine/engine.h>
 
 using namespace cage;
@@ -41,12 +42,27 @@ namespace
 	} callbacksInstance;
 }
 
+void renderDebugRay(const line &ln, const vec3 &color, uint32 duration)
+{
+	CAGE_ASSERT(ln.normalized());
+	Entity *e = engineEntities()->createAnonymous();
+	GAME_COMPONENT(Timeout, to, e);
+	to.ttl = duration;
+	CAGE_COMPONENT_ENGINE(Render, r, e);
+	r.object = HashString("flittermouse/laser/laser.obj");
+	r.color = color;
+	CAGE_COMPONENT_ENGINE(Transform, t, e);
+	t.position = ln.origin;
+	t.orientation = quat(ln.direction, vec3(0, 0, 1));
+	t.scale = ln.maximum;
+}
+
 vec3 terrainIntersection(const line &ln)
 {
-	collisionSearchQuery->query(ln);
-	if (collisionSearchQuery->name() == 0)
+	CAGE_ASSERT(ln.isSegment());
+	if (!collisionSearchQuery->query(ln))
 		return vec3::Nan();
-	CAGE_ASSERT(collisionSearchQuery->collisionPairs().size() == 1);
+	CAGE_ASSERT(collisionSearchQuery->collisionPairs().size() >= 1);
 	const Collider *c = nullptr;
 	transform tr;
 	collisionSearchQuery->collider(c, tr);
@@ -54,6 +70,7 @@ vec3 terrainIntersection(const line &ln)
 	t *= tr;
 	vec3 r = intersection(ln, t);
 	CAGE_ASSERT(r.valid());
+	//renderDebugRay(makeSegment(ln.origin, r));
 	return r;
 }
 

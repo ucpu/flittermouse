@@ -107,6 +107,8 @@ namespace
 					ass->remove(t.objectName);
 					t.entity->destroy();
 				}
+				if (t.pos.visible)
+					terrainRemoveCollider(t.objectName);
 				(TileBase&)t = TileBase();
 				t.status = TileStateEnum::Init;
 			}

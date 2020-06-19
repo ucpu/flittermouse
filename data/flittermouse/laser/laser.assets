@@ -1,0 +1,10 @@
+
+[]
+scheme = mesh
+uvs = false
+normals = false
+laser.obj
+
+[]
+scheme = pack
+laser.pack
