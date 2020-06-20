@@ -172,9 +172,8 @@ namespace
 		t.target = t.model.position + t.model.orientation * vec3(0, 0, -1);
 		CAGE_COMPONENT_ENGINE(Light, l, e);
 		l.lightType = LightTypeEnum::Spot;
-		l.color = vec3(1);
-		l.intensity = 10;
-		l.attenuation = vec3(0, 0, 0.05);
+		l.color = randomChance3() * 0.3 + 0.7;
+		l.attenuation = vec3(1, 0, 0.05);
 		CAGE_COMPONENT_ENGINE(Shadowmap, s, e);
 		s.resolution = 2048;
 		s.worldSize = vec3(0.1, 100, 0);
@@ -217,26 +216,26 @@ namespace
 			return q.valid() ? q : t;
 		};
 
-		{
-			if (check(target))
-				target = reposition(target);
-			else
-				target = reposition(origin + initialDirection);
-			CAGE_ASSERT(target.valid() && check(target) && distance(origin, target) < maxReach + 1e-5);
-		}
+		CAGE_ASSERT(check(target));
+		target = reposition(target);
 
 		{
-			for (uint32 attempt = 0; attempt < maxAttempts; attempt++)
-			{
-				vec3 p = target + randomDirection3();
-				while (!check(p))
-					p = target + randomDirection3();
-				p = reposition(p);
-				if (distanceSquared(origin, p) < distanceSquared(origin, target))
-					target = p;
-			}
-			CAGE_ASSERT(target.valid() && check(target) && distance(origin, target) < maxReach + 1e-5);
+			vec3 p = origin + initialDirection;
+			p = reposition(p);
+			if (distanceSquared(origin, p) < distanceSquared(origin, target))
+				target = p;
 		}
+
+		for (uint32 attempt = 0; attempt < maxAttempts; attempt++)
+		{
+			vec3 p = target + randomDirection3() * 0.1;
+			if (!check(p))
+				continue;
+			p = reposition(p);
+			if (distanceSquared(origin, p) < distanceSquared(origin, target))
+				target = p;
+		}
+		CAGE_ASSERT(target.valid() && check(target) && distance(origin, target) < maxReach + 1e-5);
 	}
 
 	void magnetDischarge(const transform &tp, const transform &tc, const vec3 &pp, const vec3 &pc)
@@ -282,8 +281,10 @@ namespace
 		OPTICK_EVENT("player doodads");
 		if (!engineEntities()->has(10))
 			return;
+
 		CAGE_COMPONENT_ENGINE(Transform, p, engineEntities()->get(10));
 		const TransformComponent &pp = engineEntities()->get(10)->value<TransformComponent>(TransformComponent::componentHistory);
+
 		for (Entity *e : MagnetComponent::component->entities())
 		{
 			GAME_COMPONENT(Magnet, m, e);
@@ -291,24 +292,31 @@ namespace
 			CAGE_COMPONENT_ENGINE(Transform, t, e);
 			const transform prevTrans = t;
 			t = p * m.model;
+			m.target = p * inverse(pp) * m.target;
 			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), m.target, degs(40), 1, 5);
 			t.orientation = quat(normalize(m.target - t.position), t.orientation * vec3(0, 1, 0));
 			magnetDischarge(prevTrans, t, prevTarget, m.target);
 		}
+
 		for (Entity *e : LightComponent::component->entities())
 		{
 			GAME_COMPONENT(Light, l, e);
 			CAGE_COMPONENT_ENGINE(Transform, t, e);
 			t = p * l.model;
-			//aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 10);
-			//t.orientation = quat(normalize(l.target - t.position), t.orientation * vec3(0, 1, 0));
+			l.target = p * inverse(pp) * l.target;
+			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 10);
+			t.orientation = quat(normalize(l.target - t.position), t.orientation * vec3(0, 1, 0));
+			CAGE_COMPONENT_ENGINE(Light, ll, e);
+			ll.intensity = interpolate(ll.intensity, sqr(distance(l.target, t.position) + 1), 0.01);
 		}
+
 		for (Entity *e : GunMuzzleComponent::component->entities())
 		{
 			GAME_COMPONENT(GunMuzzle, gm, e);
 			CAGE_COMPONENT_ENGINE(Transform, t, e);
 			t = p * gm.model;
 		}
+
 		for (Entity *e : GunTowerComponent::component->entities())
 		{
 			GAME_COMPONENT(GunTower, gt, e);

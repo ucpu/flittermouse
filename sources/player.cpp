@@ -32,7 +32,7 @@ namespace
 		CAGE_COMPONENT_ENGINE(Transform, pt, engineEntities()->get(10));
 
 		{ // rotate camera
-			quat q = quat(degs(-mouseMoved[1]), degs(-mouseMoved[0]), degs(mouseMoved[2] * 20));
+			quat q = quat(degs(-mouseMoved[1] * 0.5), degs(-mouseMoved[0] * 0.5), degs(mouseMoved[2] * 15));
 			mouseMoved = vec3();
 			cameraSmoothing.add(q);
 			ct.orientation = ct.orientation * cameraSmoothing.smooth();
