@@ -1,0 +1,12 @@
+
+[]
+scheme = texture
+target = 2dArray
+srgb = true
+premultiplyAlpha = true
+lightning_$$.png
+
+[]
+scheme = mesh
+material = lightning.cpm
+lightning.obj

@@ -1,0 +1,14 @@
+
+[base]
+mask = 0.5
+emission = 10
+
+[textures]
+albedo = lightning_$$.png
+
+[flags]
+noLighting
+noShadowCast
+noVelocityWrite
+noDepthWrite
+transparency

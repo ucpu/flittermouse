@@ -238,42 +238,51 @@ namespace
 		CAGE_ASSERT(target.valid() && check(target) && distance(origin, target) < maxReach + 1e-5);
 	}
 
+	void magnetDischargeImpl(const vec3 &a, const vec3 &b, const vec3 &cam, const vec3 &color, real lightProb)
+	{
+		real d = distance(a, b);
+		vec3 v = normalize(b - a);
+		vec3 c = (a + b) * 0.5;
+		vec3 up = normalize(cam - c);
+		if (d > 0.07)
+		{
+			vec3 side = normalize(cross(v, up));
+			c += side * (d * randomRange(-0.2, 0.2));
+			magnetDischargeImpl(a, c, cam, color, lightProb * 0.5);
+			magnetDischargeImpl(c, b, cam, color, lightProb * 0.5);
+			return;
+		}
+		Entity *e = engineEntities()->createUnique();
+		CAGE_COMPONENT_ENGINE(Transform, t, e);
+		t.position = c;
+		t.orientation = quat(v, up, true);
+		t.scale = d;
+		CAGE_COMPONENT_ENGINE(Render, r, e);
+		r.object = HashString("flittermouse/lightning/lightning.obj");
+		r.color = color;
+		CAGE_COMPONENT_ENGINE(TextureAnimation, anim, e);
+		anim.offset = randomChance() * 100;
+		GAME_COMPONENT(Timeout, ttl, e);
+		ttl.ttl = 1;
+		if (randomChance() < lightProb)
+		{
+			CAGE_COMPONENT_ENGINE(Light, light, e);
+			light.color = color;
+			light.intensity = 2;
+			light.lightType = LightTypeEnum::Point;
+			light.attenuation = vec3(0.5, 0, 0.4);
+		}
+	}
+
 	void magnetDischarge(const transform &tp, const transform &tc, const vec3 &pp, const vec3 &pc)
 	{
-		if (randomChance() > 1 / (1 + sqr(distanceSquared(pc, tc.position))))
+		if (randomChance() > 0.3 / (1 + sqr(distanceSquared(pc, tc.position))))
 			return;
 		vec3 color = randomChance3() * 0.4 + vec3(0, 0, 0.4);
-		{ // laser
-			Entity *e = engineEntities()->createAnonymous();
-			GAME_COMPONENT(Timeout, to, e);
-			to.ttl = 1;
-			CAGE_COMPONENT_ENGINE(Render, r, e);
-			r.object = HashString("flittermouse/laser/laser.obj");
-			r.color = color;
-			r.intensity = 2;
-			TransformComponent &p = e->value<TransformComponent>(TransformComponent::componentHistory);
-			p.position = tp.position;
-			p.orientation = quat(pp - tp.position, vec3(0, 0, 1));
-			p.scale = distance(pp, tp.position);
-			CAGE_COMPONENT_ENGINE(Transform, t, e);
-			t.position = tc.position;
-			t.orientation = quat(pc - tc.position, vec3(0, 0, 1));
-			t.scale = distance(pc, tc.position);
-		}
-		// lights
-		for (uint32 i = 0; i < 2; i++)
-		{
-			Entity *e = engineEntities()->createAnonymous();
-			GAME_COMPONENT(Timeout, to, e);
-			to.ttl = 1;
-			CAGE_COMPONENT_ENGINE(Light, l, e);
-			l.color = color;
-			l.attenuation = vec3(1, 0, 2);
-			TransformComponent &p = e->value<TransformComponent>(TransformComponent::componentHistory);
-			p.position = tp.position;
-			CAGE_COMPONENT_ENGINE(Transform, t, e);
-			t.position = pc;
-		}
+		CAGE_COMPONENT_ENGINE(Transform, cam, engineEntities()->get(1));
+		vec3 start = tc.position + tc.orientation * vec3(0, 0, -0.005);
+		vec3 end = pc + (randomChance3() - 0.5) * 0.01;
+		magnetDischargeImpl(start, end, cam.position, color, 2);
 	}
 
 	void engineUpdate()
@@ -293,7 +302,7 @@ namespace
 			const transform prevTrans = t;
 			t = p * m.model;
 			m.target = p * inverse(pp) * m.target;
-			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), m.target, degs(40), 1, 5);
+			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), m.target, degs(40), 1, 3);
 			t.orientation = quat(normalize(m.target - t.position), t.orientation * vec3(0, 1, 0));
 			magnetDischarge(prevTrans, t, prevTarget, m.target);
 		}
@@ -304,7 +313,7 @@ namespace
 			CAGE_COMPONENT_ENGINE(Transform, t, e);
 			t = p * l.model;
 			l.target = p * inverse(pp) * l.target;
-			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 10);
+			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 7);
 			t.orientation = quat(normalize(l.target - t.position), t.orientation * vec3(0, 1, 0));
 			CAGE_COMPONENT_ENGINE(Light, ll, e);
 			ll.intensity = interpolate(ll.intensity, sqr(distance(l.target, t.position) + 1), 0.01);

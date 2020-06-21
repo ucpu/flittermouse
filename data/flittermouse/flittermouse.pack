@@ -1,4 +1,5 @@
 
 []
 player/player.pack
-laser/laser.pack
+laser/laser.obj
+lightning/lightning.obj

@@ -46,8 +46,9 @@ namespace
 			vec3 a = vec3((int)keyboardKeys[3] - (int)keyboardKeys[2], (int)keyboardKeys[4] - (int)keyboardKeys[5], (int)keyboardKeys[1] - (int)keyboardKeys[0]);
 			if (a != vec3())
 				a = normalize(a);
-			playerSpeed = playerSpeed * 0.93 + a * 0.01;
-			pt.position += pt.orientation * playerSpeed;
+			a = pt.orientation * a;
+			playerSpeed = playerSpeed * 0.93 + a * 0.006;
+			pt.position += playerSpeed;
 		}
 
 		{ // update camera position
