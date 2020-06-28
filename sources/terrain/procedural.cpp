@@ -281,7 +281,7 @@ namespace
 		static Holder<NoiseFunction> clouds4 = newClouds(3);
 		static Holder<NoiseFunction> clouds5 = newClouds(3);
 
-		const vec3 p = pos * 0.01;
+		const vec3 p = pos * 0.005;
 		std::array<real, 5> result;
 		result[0] = clouds1->evaluate(p);
 		result[1] = clouds2->evaluate(p);
