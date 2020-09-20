@@ -4,6 +4,7 @@
 #include <cage-core/entities.h>
 #include <cage-core/geometry.h>
 #include <cage-core/hashString.h>
+#include <cage-core/string.h>
 #include <cage-engine/engine.h>
 
 #include <cstring> // std::strlen
@@ -358,11 +359,11 @@ namespace
 		{
 			const vec3 p = convPos(vec3::parse(ini->getString(s, "pos")));
 			const quat r = convRot(vec3::parse(ini->getString(s, "rot")));
-			if (s.isPattern("", "magnet", ""))
+			if (isPattern(s, "", "magnet", ""))
 				createMagnet(p, r);
-			else if (s.isPattern("", "light", ""))
+			else if (isPattern(s, "", "light", ""))
 				createLight(p, r);
-			else if (s.isPattern("", "cannon", ""))
+			else if (isPattern(s, "", "cannon", ""))
 				createGun(p, r);
 			else
 				CAGE_THROW_ERROR(Exception, "unknown player doodad");

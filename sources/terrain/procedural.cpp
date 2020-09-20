@@ -445,13 +445,13 @@ namespace
 
 		{
 			OPTICK_EVENT("clip");
-			t.mesh->clip(aabb(vec3(-1.003), vec3(1.003)));
+			polyhedronClip(+t.mesh, aabb(vec3(-1.003), vec3(1.003)));
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/3.obj");
 		}
 
 		{ // clipping sometimes generates very small triangles
 			OPTICK_EVENT("merge vertices");
-			t.mesh->mergeCloseVertices(0.02);
+			polyhedronMergeCloseVertices(+t.mesh, 0.02);
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/4.obj");
 		}
 
@@ -459,7 +459,7 @@ namespace
 			OPTICK_EVENT("unwrap");
 			PolyhedronUnwrapConfig cfg;
 			cfg.texelsPerUnit = 50.0f;
-			t.textureResolution = t.mesh->unwrap(cfg);
+			t.textureResolution = polyhedronUnwrap(+t.mesh, cfg);
 			//CAGE_LOG(SeverityEnum::Info, "generator", stringizer() + "texture resolution: " + t.textureResolution + " (" + t.pos + ")");
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/5.obj");
 			CAGE_ASSERT(t.textureResolution <= 2048);
@@ -496,12 +496,12 @@ namespace
 		cfg.width = cfg.height = t.textureResolution;
 		{
 			OPTICK_EVENT("generating");
-			t.mesh->generateTexture(cfg);
+			polyhedronGenerateTexture(+t.mesh, cfg);
 		}
 		{
 			OPTICK_EVENT("inpaint");
-			t.albedo->inpaint(2);
-			t.special->inpaint(2);
+			imageDilation(+t.albedo, 2);
+			imageDilation(+t.special, 2);
 		}
 
 		//auto tex = t.albedo->copy();
