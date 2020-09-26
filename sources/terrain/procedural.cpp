@@ -415,7 +415,7 @@ namespace
 
 		{
 			MarchingCubesCreateConfig cfg;
-			cfg.resolutionX = cfg.resolutionY = cfg.resolutionZ = 16;
+			cfg.resolution = ivec3(20);
 			cfg.box = aabb(vec3(-1), vec3(1));
 			cfg.clip = false;
 			Holder<MarchingCubes> cubes = newMarchingCubes(cfg);
@@ -431,28 +431,30 @@ namespace
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/1.obj");
 		}
 
+		/*
 		{
-			//OPTICK_EVENT("simplify");
-			//PolyhedronSimplificationConfig cfg;
-			//cfg.minEdgeLength = 0.02;
-			//cfg.maxEdgeLength = 0.5;
-			//cfg.approximateError = 0.03;
-			//cfg.useProjection = false;
-			//t.mesh->simplify(cfg);
-			//t.mesh->discardInvalid(); // simplification occasionally generates nan points
+			OPTICK_EVENT("simplify");
+			PolyhedronSimplificationConfig cfg;
+#ifdef CAGE_DEBUG
+			cfg.minEdgeLength = 0.1;
+			cfg.maxEdgeLength = 0.5;
+			cfg.approximateError = 0.15;
+#else
+			cfg.minEdgeLength = 0.005;
+			cfg.maxEdgeLength = 0.05;
+			cfg.approximateError = 0.01;
+#endif // CAGE_DEBUG
+			cfg.useProjection = false;
+			polyhedronSimplify(+t.mesh, cfg);
+			//polyhedronDiscardInvalid(+t.mesh); // simplification occasionally generates nan points
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/2.obj");
 		}
+		*/
 
 		{
 			OPTICK_EVENT("clip");
 			polyhedronClip(+t.mesh, aabb(vec3(-1.003), vec3(1.003)));
 			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/3.obj");
-		}
-
-		{ // clipping sometimes generates very small triangles
-			OPTICK_EVENT("merge vertices");
-			polyhedronMergeCloseVertices(+t.mesh, 0.02);
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/4.obj");
 		}
 
 		{
@@ -499,7 +501,7 @@ namespace
 			polyhedronGenerateTexture(+t.mesh, cfg);
 		}
 		{
-			OPTICK_EVENT("inpaint");
+			OPTICK_EVENT("dilation");
 			imageDilation(+t.albedo, 2);
 			imageDilation(+t.special, 2);
 		}
