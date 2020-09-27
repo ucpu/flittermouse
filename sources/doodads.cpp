@@ -295,6 +295,9 @@ namespace
 		CAGE_COMPONENT_ENGINE(Transform, p, engineEntities()->get(10));
 		const TransformComponent &pp = engineEntities()->get(10)->value<TransformComponent>(TransformComponent::componentHistory);
 
+		CAGE_COMPONENT_ENGINE(Transform, cameraTransform, engineEntities()->get(1));
+		CAGE_COMPONENT_ENGINE(Camera, cameraProperties, engineEntities()->get(1));
+
 		for (Entity *e : MagnetComponent::component->entities())
 		{
 			GAME_COMPONENT(Magnet, m, e);
@@ -314,11 +317,15 @@ namespace
 			CAGE_COMPONENT_ENGINE(Transform, t, e);
 			t = p * l.model;
 			l.target = p * inverse(pp) * l.target;
-			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 7);
+			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 12);
 			t.orientation = quat(normalize(l.target - t.position), t.orientation * vec3(0, 1, 0));
 			CAGE_COMPONENT_ENGINE(Light, ll, e);
-			ll.intensity = interpolate(ll.intensity, sqr(distance(l.target, t.position) + 1), 0.01);
+			ll.intensity = interpolate(ll.intensity, sqr(distance(l.target, t.position) + 1), 0.02);
+			const real focus = distance(cameraTransform.position, l.target);
+			cameraProperties.depthOfField.focusDistance = interpolate(cameraProperties.depthOfField.focusDistance, focus, 0.05);
 		}
+		cameraProperties.depthOfField.focusRadius = 1;
+		cameraProperties.depthOfField.blendRadius = cameraProperties.depthOfField.focusDistance * 1.2;
 
 		for (Entity *e : GunMuzzleComponent::component->entities())
 		{
