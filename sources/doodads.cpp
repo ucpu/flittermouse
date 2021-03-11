@@ -174,7 +174,7 @@ namespace
 		CAGE_COMPONENT_ENGINE(Light, l, e);
 		l.lightType = LightTypeEnum::Spot;
 		l.color = randomChance3() * 0.3 + 0.7;
-		l.attenuation = vec3(1, 0, 0.05);
+		l.attenuation = vec3(1.5, 0, 0.05);
 		CAGE_COMPONENT_ENGINE(Shadowmap, s, e);
 		s.resolution = 2048;
 		s.worldSize = vec3(0.1, 100, 0);
@@ -245,7 +245,12 @@ namespace
 		vec3 v = normalize(b - a);
 		vec3 c = (a + b) * 0.5;
 		vec3 up = normalize(cam - c);
-		if (d > 0.07)
+#ifdef CAGE_DEBUG
+		constexpr real threshold = 0.15;
+#else
+		constexpr real threshold = 0.03;
+#endif // CAGE_DEBUG
+		if (d > threshold)
 		{
 			vec3 side = normalize(cross(v, up));
 			c += side * (d * randomRange(-0.2, 0.2));
@@ -269,7 +274,7 @@ namespace
 		{
 			CAGE_COMPONENT_ENGINE(Light, light, e);
 			light.color = color;
-			light.intensity = 2;
+			light.intensity = 1.5;
 			light.lightType = LightTypeEnum::Point;
 			light.attenuation = vec3(0.5, 0, 0.4);
 		}

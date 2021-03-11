@@ -407,14 +407,32 @@ namespace
 		t->special->set(x, y, vec2(roughness, metallic));
 	}
 
+	float averageEdgeLength(const Polyhedron *poly)
+	{
+		CAGE_ASSERT(poly->type() == PolyhedronTypeEnum::Triangles);
+		CAGE_ASSERT(poly->indicesCount() > 0);
+		real len = 0;
+		const uint32 inds = poly->indicesCount();
+		for (uint32 i = 0; i < inds; i += 3)
+		{
+			const vec3 a = poly->positions()[poly->indices()[i + 0]];
+			const vec3 b = poly->positions()[poly->indices()[i + 1]];
+			const vec3 c = poly->positions()[poly->indices()[i + 2]];
+			len += distance(a, b);
+			len += distance(b, c);
+			len += distance(c, a);
+		}
+		return (len / inds).value;
+	}
+
 	void generateMesh(ProcTile &t)
 	{
 		OPTICK_EVENT("generateMesh");
 
 		{
 			MarchingCubesCreateConfig cfg;
-			cfg.resolution = ivec3(20);
-			cfg.box = aabb(vec3(-1), vec3(1));
+			cfg.resolution = ivec3(24);
+			cfg.box = aabb(vec3(-1.2), vec3(1.2));
 			cfg.clip = false;
 			Holder<MarchingCubes> cubes = newMarchingCubes(cfg);
 			{
@@ -424,35 +442,29 @@ namespace
 			{
 				OPTICK_EVENT("marchingCubes");
 				t.mesh = cubes->makePolyhedron();
-				OPTICK_TAG("Faces", t.mesh->facesCount());
+				OPTICK_TAG("faces", t.mesh->facesCount());
+				OPTICK_TAG("avgEdgeLen", averageEdgeLength(+t.mesh));
 			}
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/1.obj");
 		}
 
 		/*
 		{
 			OPTICK_EVENT("simplify");
 			PolyhedronSimplificationConfig cfg;
-#ifdef CAGE_DEBUG
-			cfg.minEdgeLength = 0.1;
-			cfg.maxEdgeLength = 0.5;
-			cfg.approximateError = 0.15;
-#else
-			cfg.minEdgeLength = 0.005;
-			cfg.maxEdgeLength = 0.05;
+			cfg.minEdgeLength = 0.01;
+			cfg.maxEdgeLength = 0.25;
 			cfg.approximateError = 0.01;
-#endif // CAGE_DEBUG
 			cfg.useProjection = false;
 			polyhedronSimplify(+t.mesh, cfg);
-			//polyhedronDiscardInvalid(+t.mesh); // simplification occasionally generates nan points
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/2.obj");
+			OPTICK_TAG("faces", t.mesh->facesCount());
+			OPTICK_TAG("avgEdgeLen", averageEdgeLength(+t.mesh));
 		}
 		*/
 
 		{
 			OPTICK_EVENT("clip");
-			polyhedronClip(+t.mesh, aabb(vec3(-1.003), vec3(1.003)));
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/3.obj");
+			polyhedronClip(+t.mesh, aabb(vec3(-1.005), vec3(1.005)));
+			OPTICK_TAG("faces", t.mesh->facesCount());
 		}
 
 		{
@@ -460,18 +472,12 @@ namespace
 			PolyhedronUnwrapConfig cfg;
 			cfg.texelsPerUnit = 50.0f;
 			t.textureResolution = polyhedronUnwrap(+t.mesh, cfg);
-			//CAGE_LOG(SeverityEnum::Info, "generator", stringizer() + "texture resolution: " + t.textureResolution + " (" + t.pos + ")");
-			//t.mesh->exportObjFile({}, stringizer() + "debug/" + t.pos + "/5.obj");
 			CAGE_ASSERT(t.textureResolution <= 2048);
 			if (t.textureResolution == 0)
 				t.mesh->clear();
-			OPTICK_TAG("Faces", t.mesh->facesCount());
-			OPTICK_TAG("Resolution", t.textureResolution);
+			OPTICK_TAG("faces", t.mesh->facesCount());
+			OPTICK_TAG("resolution", t.textureResolution);
 		}
-
-		//auto msh = t.mesh->copy();
-		//msh->applyTransform(t.pos.getTransform());
-		//msh->exportObjFile({}, stringizer() + "debug/" + t.pos + ".obj");
 	}
 
 	void generateCollider(ProcTile &t)

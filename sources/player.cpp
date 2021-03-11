@@ -157,8 +157,8 @@ namespace
 			c.near = 0.05;
 			c.far = 200;
 			c.ambientColor = c.ambientDirectionalColor = vec3(1);
-			c.ambientIntensity = 0.01;
-			c.ambientDirectionalIntensity = 0.1;
+			c.ambientIntensity = 0.02;
+			c.ambientDirectionalIntensity = 0.15;
 			c.effects = CameraEffectsFlags::Default | CameraEffectsFlags::DepthOfField;
 		}
 	}
