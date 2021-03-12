@@ -432,7 +432,7 @@ namespace
 		{
 			MarchingCubesCreateConfig cfg;
 			cfg.resolution = ivec3(24);
-			cfg.box = aabb(vec3(-1.2), vec3(1.2));
+			cfg.box = aabb(vec3(-1), vec3(1));
 			cfg.clip = false;
 			Holder<MarchingCubes> cubes = newMarchingCubes(cfg);
 			{
