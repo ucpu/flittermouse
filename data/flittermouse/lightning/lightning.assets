@@ -7,6 +7,6 @@ premultiplyAlpha = true
 lightning_$$.png
 
 []
-scheme = mesh
+scheme = model
 material = lightning.cpm
 lightning.obj

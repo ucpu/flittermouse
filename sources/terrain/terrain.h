@@ -23,6 +23,6 @@ inline stringizer &operator + (stringizer &s, const TilePos &p)
 }
 
 std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady);
-void terrainGenerate(const TilePos &tilePos, Holder<Polyhedron> &mesh, Holder<Collider> &collider, Holder<Image> &albedo, Holder<Image> &special);
+void terrainGenerate(const TilePos &tilePos, Holder<Mesh> &mesh, Holder<Collider> &collider, Holder<Image> &albedo, Holder<Image> &special);
 
 #endif // !baseTile_h_dsfg7d8f5

@@ -4,19 +4,19 @@ scheme = pack
 player.pack
 
 []
-scheme = mesh
+scheme = model
 material = ship.cpm
 scale = 0.02
 ship.obj?hull
 
 []
-scheme = mesh
+scheme = model
 material = sign.cpm
 scale = 0.02
 ship.obj?sign
 
 []
-scheme = mesh
+scheme = model
 material = ship.cpm
 scale = 0.02
 axes = +x+z-y

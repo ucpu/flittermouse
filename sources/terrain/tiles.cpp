@@ -29,8 +29,8 @@ namespace
 	struct TileBase
 	{
 		Holder<Collider> cpuCollider;
-		Holder<Polyhedron> cpuMesh;
-		Holder<Mesh> gpuMesh;
+		Holder<Mesh> cpuMesh;
+		Holder<Model> gpuMesh;
 		Holder<Image> cpuAlbedo;
 		Holder<Texture> gpuAlbedo;
 		Holder<Image> cpuSpecial;
@@ -193,12 +193,12 @@ namespace
 		return t;
 	}
 
-	Holder<Mesh> dispatchMesh(Holder<Polyhedron> &poly)
+	Holder<Model> dispatchMesh(Holder<Mesh> &poly)
 	{
 		OPTICK_EVENT("dispatchMesh");
-		Holder<Mesh> m = newMesh();
-		MeshHeader::MaterialData mat;
-		m->importPolyhedron(poly.get(), { (char*)&mat, (char*)(&mat + 1) });
+		Holder<Model> m = newModel();
+		ModelHeader::MaterialData mat;
+		m->importMesh(+poly, { (char*)&mat, (char*)(&mat + 1) });
 		poly.clear();
 		return m;
 	}
@@ -227,7 +227,7 @@ namespace
 				// transfer asset ownership
 				ass->fabricate<AssetSchemeIndexTexture, Texture>(t.albedoName, templates::move(t.gpuAlbedo), stringizer() + "albedo " + t.pos);
 				ass->fabricate<AssetSchemeIndexTexture, Texture>(t.specialName, templates::move(t.gpuSpecial), stringizer() + "special " + t.pos);
-				ass->fabricate<AssetSchemeIndexMesh, Mesh>(t.meshName, templates::move(t.gpuMesh), stringizer() + "mesh " + t.pos);
+				ass->fabricate<AssetSchemeIndexModel, Model>(t.meshName, templates::move(t.gpuMesh), stringizer() + "mesh " + t.pos);
 				ass->fabricate<AssetSchemeIndexRenderObject, RenderObject>(t.objectName, templates::move(t.renderObject), stringizer() + "object " + t.pos);
 
 				t.status = TileStateEnum::Entity;

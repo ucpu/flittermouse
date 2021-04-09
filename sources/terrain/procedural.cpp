@@ -1,7 +1,7 @@
 #include "terrain.h"
 
 #include <cage-core/image.h>
-#include <cage-core/polyhedron.h>
+#include <cage-core/mesh.h>
 #include <cage-core/collider.h>
 #include <cage-core/marchingCubes.h>
 #include <cage-core/noiseFunction.h>
@@ -298,7 +298,7 @@ namespace
 	struct ProcTile
 	{
 		TilePos pos;
-		Holder<Polyhedron> mesh;
+		Holder<Mesh> mesh;
 		Holder<Collider> collider;
 		Holder<Image> albedo;
 		Holder<Image> special;
@@ -407,9 +407,9 @@ namespace
 		t->special->set(x, y, vec2(roughness, metallic));
 	}
 
-	float averageEdgeLength(const Polyhedron *poly)
+	float averageEdgeLength(const Mesh *poly)
 	{
-		CAGE_ASSERT(poly->type() == PolyhedronTypeEnum::Triangles);
+		CAGE_ASSERT(poly->type() == MeshTypeEnum::Triangles);
 		CAGE_ASSERT(poly->indicesCount() > 0);
 		real len = 0;
 		const uint32 inds = poly->indicesCount();
@@ -441,7 +441,7 @@ namespace
 			}
 			{
 				OPTICK_EVENT("marchingCubes");
-				t.mesh = cubes->makePolyhedron();
+				t.mesh = cubes->makeMesh();
 				OPTICK_TAG("faces", t.mesh->facesCount());
 				OPTICK_TAG("avgEdgeLen", averageEdgeLength(+t.mesh));
 			}
@@ -463,15 +463,15 @@ namespace
 
 		{
 			OPTICK_EVENT("clip");
-			polyhedronClip(+t.mesh, aabb(vec3(-1.005), vec3(1.005)));
+			meshClip(+t.mesh, aabb(vec3(-1.005), vec3(1.005)));
 			OPTICK_TAG("faces", t.mesh->facesCount());
 		}
 
 		{
 			OPTICK_EVENT("unwrap");
-			PolyhedronUnwrapConfig cfg;
+			MeshUnwrapConfig cfg;
 			cfg.texelsPerUnit = 50.0f;
-			t.textureResolution = polyhedronUnwrap(+t.mesh, cfg);
+			t.textureResolution = meshUnwrap(+t.mesh, cfg);
 			CAGE_ASSERT(t.textureResolution <= 2048);
 			if (t.textureResolution == 0)
 				t.mesh->clear();
@@ -484,7 +484,7 @@ namespace
 	{
 		OPTICK_EVENT("generateCollider");
 		t.collider = newCollider();
-		t.collider->importPolyhedron(t.mesh.get());
+		t.collider->importMesh(t.mesh.get());
 		t.collider->rebuild();
 	}
 
@@ -497,12 +497,12 @@ namespace
 		t.special = newImage();
 		t.special->initialize(t.textureResolution, t.textureResolution, 2);
 		t.special->colorConfig.gammaSpace = GammaSpaceEnum::Linear;
-		PolyhedronTextureGenerationConfig cfg;
+		MeshTextureGenerationConfig cfg;
 		cfg.generator.bind<ProcTile *, &textureGenerator>(&t);
 		cfg.width = cfg.height = t.textureResolution;
 		{
 			OPTICK_EVENT("generating");
-			polyhedronGenerateTexture(+t.mesh, cfg);
+			meshGenerateTexture(+t.mesh, cfg);
 		}
 		{
 			OPTICK_EVENT("dilation");
@@ -531,7 +531,7 @@ namespace
 	} initializer;
 }
 
-void terrainGenerate(const TilePos &tilePos, Holder<Polyhedron> &mesh, Holder<Collider> &collider, Holder<Image> &albedo, Holder<Image> &special)
+void terrainGenerate(const TilePos &tilePos, Holder<Mesh> &mesh, Holder<Collider> &collider, Holder<Image> &albedo, Holder<Image> &special)
 {
 	OPTICK_EVENT("terrainGenerate");
 	OPTICK_TAG("Tile", (stringizer() + tilePos).value.c_str());
