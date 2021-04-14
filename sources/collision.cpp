@@ -42,7 +42,7 @@ namespace
 	} callbacksInstance;
 }
 
-void renderDebugRay(const line &ln, const vec3 &color, uint32 duration)
+void renderDebugRay(const Line &ln, const vec3 &color, uint32 duration)
 {
 	CAGE_ASSERT(ln.normalized());
 	Entity *e = engineEntities()->createAnonymous();
@@ -57,7 +57,7 @@ void renderDebugRay(const line &ln, const vec3 &color, uint32 duration)
 	t.scale = ln.maximum;
 }
 
-vec3 terrainIntersection(const line &ln)
+vec3 terrainIntersection(const Line &ln)
 {
 	CAGE_ASSERT(ln.isSegment());
 	if (!collisionSearchQuery->query(ln))
@@ -66,7 +66,7 @@ vec3 terrainIntersection(const line &ln)
 	const Collider *c = nullptr;
 	transform tr;
 	collisionSearchQuery->collider(c, tr);
-	triangle t = c->triangles()[collisionSearchQuery->collisionPairs()[0].b];
+	Triangle t = c->triangles()[collisionSearchQuery->collisionPairs()[0].b];
 	t *= tr;
 	vec3 r = intersection(ln, t);
 	CAGE_ASSERT(r.valid());

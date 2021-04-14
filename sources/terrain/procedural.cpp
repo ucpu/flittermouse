@@ -432,7 +432,7 @@ namespace
 		{
 			MarchingCubesCreateConfig cfg;
 			cfg.resolution = ivec3(24);
-			cfg.box = aabb(vec3(-1), vec3(1));
+			cfg.box = Aabb(vec3(-1), vec3(1));
 			cfg.clip = false;
 			Holder<MarchingCubes> cubes = newMarchingCubes(cfg);
 			{
@@ -463,7 +463,7 @@ namespace
 
 		{
 			OPTICK_EVENT("clip");
-			meshClip(+t.mesh, aabb(vec3(-1.005), vec3(1.005)));
+			meshClip(+t.mesh, Aabb(vec3(-1.005), vec3(1.005)));
 			OPTICK_TAG("faces", t.mesh->facesCount());
 		}
 

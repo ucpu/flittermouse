@@ -2,9 +2,9 @@
 
 #include <cage-core/geometry.h>
 
-aabb TilePos::getBox() const
+Aabb TilePos::getBox() const
 {
-	return aabb(vec3(-1), vec3(1)) * getTransform();
+	return Aabb(vec3(-1), vec3(1)) * getTransform();
 }
 
 transform TilePos::getTransform() const

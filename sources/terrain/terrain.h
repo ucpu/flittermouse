@@ -11,7 +11,7 @@ struct TilePos
 	sint32 radius = 0;
 	bool visible = true;
 
-	aabb getBox() const; // aabb in world space
+	Aabb getBox() const; // aabb in world space
 	transform getTransform() const;
 	real distanceToPlayer() const;
 	bool operator < (const TilePos &other) const;
