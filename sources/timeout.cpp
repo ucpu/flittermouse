@@ -27,7 +27,7 @@ namespace
 	void engineInitialize()
 	{
 		entitiesToDestroy = engineEntities()->defineGroup();
-		TimeoutComponent::component = engineEntities()->defineComponent(TimeoutComponent(), true);
+		TimeoutComponent::component = engineEntities()->defineComponent(TimeoutComponent());
 	}
 
 	class Callbacks

@@ -361,10 +361,10 @@ namespace
 
 	void engineInitialize()
 	{
-		MagnetComponent::component = engineEntities()->defineComponent(MagnetComponent(), true);
-		LightComponent::component = engineEntities()->defineComponent(LightComponent(), true);
-		GunMuzzleComponent::component = engineEntities()->defineComponent(GunMuzzleComponent(), true);
-		GunTowerComponent::component = engineEntities()->defineComponent(GunTowerComponent(), true);
+		MagnetComponent::component = engineEntities()->defineComponent(MagnetComponent());
+		LightComponent::component = engineEntities()->defineComponent(LightComponent());
+		GunMuzzleComponent::component = engineEntities()->defineComponent(GunMuzzleComponent());
+		GunTowerComponent::component = engineEntities()->defineComponent(GunTowerComponent());
 		Holder<Ini> ini = newIni();
 		ini->importBuffer({ playerDoodadsPositionsIni, playerDoodadsPositionsIni + std::strlen(playerDoodadsPositionsIni) });
 		for (const string &s : ini->sections())

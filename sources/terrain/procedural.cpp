@@ -497,7 +497,7 @@ namespace
 		t.special = newImage();
 		t.special->initialize(t.textureResolution, t.textureResolution, 2);
 		t.special->colorConfig.gammaSpace = GammaSpaceEnum::Linear;
-		MeshTextureGenerationConfig cfg;
+		MeshGenerateTextureConfig cfg;
 		cfg.generator.bind<ProcTile *, &textureGenerator>(&t);
 		cfg.width = cfg.height = t.textureResolution;
 		{
@@ -545,8 +545,8 @@ void terrainGenerate(const TilePos &tilePos, Holder<Mesh> &mesh, Holder<Collider
 	generateCollider(t);
 	generateTextures(t);
 
-	mesh = templates::move(t.mesh);
-	collider = templates::move(t.collider);
-	albedo = templates::move(t.albedo);
-	special = templates::move(t.special);
+	mesh = std::move(t.mesh);
+	collider = std::move(t.collider);
+	albedo = std::move(t.albedo);
+	special = std::move(t.special);
 }
