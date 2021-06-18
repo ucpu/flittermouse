@@ -19,7 +19,7 @@ namespace
 	void engineInitialize()
 	{
 		collisionSearchData = newCollisionStructure({});
-		collisionSearchQuery = newCollisionQuery(collisionSearchData.get());
+		collisionSearchQuery = newCollisionQuery(collisionSearchData.share());
 	}
 
 	void engineUpdate()
@@ -63,7 +63,7 @@ vec3 terrainIntersection(const Line &ln)
 	if (!collisionSearchQuery->query(ln))
 		return vec3::Nan();
 	CAGE_ASSERT(collisionSearchQuery->collisionPairs().size() >= 1);
-	const Collider *c = nullptr;
+	Holder<const Collider> c;
 	transform tr;
 	collisionSearchQuery->collider(c, tr);
 	Triangle t = c->triangles()[collisionSearchQuery->collisionPairs()[0].b];
@@ -74,12 +74,12 @@ vec3 terrainIntersection(const Line &ln)
 	return r;
 }
 
-void terrainAddCollider(uint32 name, Collider *c, const transform &tr)
+void terrainAddCollider(uint32 name, Holder<Collider> c, const transform &tr)
 {
 	CAGE_ASSERT(tr.valid());
 	CAGE_ASSERT(c);
 	CAGE_ASSERT(c->box().valid());
-	collisionSearchData->update(name, c, tr);
+	collisionSearchData->update(name, std::move(c), tr);
 	collisionSearchNeedsRebuild = true;
 }
 

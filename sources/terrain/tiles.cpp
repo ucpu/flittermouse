@@ -133,7 +133,7 @@ namespace
 				{
 					if (visible)
 					{
-						terrainAddCollider(t.objectName, t.cpuCollider.get(), t.pos.getTransform());
+						terrainAddCollider(t.objectName, t.cpuCollider.share(), t.pos.getTransform());
 						CAGE_COMPONENT_ENGINE(Render, r, t.entity);
 						r.object = t.objectName;
 					}

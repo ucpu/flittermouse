@@ -10,7 +10,7 @@ using namespace cage;
 void renderDebugRay(const Line &ln, const vec3 &color = vec3(), uint32 duration = 1);
 
 vec3 terrainIntersection(const Line &ln);
-void terrainAddCollider(uint32 name, Collider *c, const transform &tr);
+void terrainAddCollider(uint32 name, Holder<Collider> c, const transform &tr);
 void terrainRemoveCollider(uint32 name);
 void terrainRebuildColliders();
 
