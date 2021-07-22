@@ -398,13 +398,13 @@ namespace
 		}
 	}
 
-	void textureGenerator(ProcTile *t, uint32 x, uint32 y, const ivec3 &idx, const vec3 &weights)
+	void textureGenerator(ProcTile *t, const ivec2 &xy, const ivec3 &idx, const vec3 &weights)
 	{
 		vec3 position = t->mesh->positionAt(idx, weights) * t->pos.getTransform() * 10;
 		vec3 color; real roughness; real metallic;
 		textureGeneratorImpl(position, color, roughness, metallic);
-		t->albedo->set(x, y, color);
-		t->special->set(x, y, vec2(roughness, metallic));
+		t->albedo->set(xy, color);
+		t->special->set(xy, vec2(roughness, metallic));
 	}
 
 	float averageEdgeLength(const Mesh *poly)

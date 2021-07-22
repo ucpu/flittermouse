@@ -59,9 +59,9 @@ namespace
 		playerPosition = pt.position;
 	}
 
-	void setKeyboardKey(uint32 a, uint32 b, bool v)
+	void setKeyboardKey(uint32 key, bool v)
 	{
-		switch (a)
+		switch (key)
 		{
 		case 87: // w
 		case 265: // up
@@ -88,15 +88,15 @@ namespace
 		}
 	}
 
-	bool keyPress(uint32 a, uint32 b, ModifiersFlags m)
+	bool keyPress(uint32 key, ModifiersFlags m)
 	{
-		setKeyboardKey(a, b, true);
+		setKeyboardKey(key, true);
 		return false;
 	}
 
-	bool keyRelease(uint32 a, uint32 b, ModifiersFlags m)
+	bool keyRelease(uint32 key, ModifiersFlags m)
 	{
-		setKeyboardKey(a, b, false);
+		setKeyboardKey(key, false);
 		return false;
 	}
 
