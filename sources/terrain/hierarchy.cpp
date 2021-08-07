@@ -57,7 +57,6 @@ namespace
 
 std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady)
 {
-	OPTICK_EVENT("findNeededTiles");
 	std::set<TilePos> tilesRequests;
 	TilePos pt;
 	constexpr sint32 TileSize = 32;

@@ -14,7 +14,6 @@ namespace
 {
 	void engineUpdate()
 	{
-		OPTICK_EVENT("timeout & entities destroy");
 		for (Entity *e : TimeoutComponent::component->entities())
 		{
 			GAME_COMPONENT(Timeout, t, e);

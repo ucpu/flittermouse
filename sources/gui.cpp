@@ -16,12 +16,12 @@ namespace
 		EntityManager *ents = engineGui()->entities();
 
 		{ // player position
-			CAGE_COMPONENT_GUI(Text, t, ents->get(playerPositionLabel));
+			GuiTextComponent &t = ents->get(playerPositionLabel)->value<GuiTextComponent>();
 			t.value = stringizer() + playerPosition;
 		}
 
 		{ // terrain generation progress
-			CAGE_COMPONENT_GUI(Text, t, ents->get(terrainGenerationProgressLabel));
+			GuiTextComponent &t = ents->get(terrainGenerationProgressLabel)->value<GuiTextComponent>();
 			t.value = stringizer() + terrainGenerationProgress * 100 + " %";
 		}
 	}
@@ -33,31 +33,31 @@ namespace
 		Entity *panel = nullptr;
 		{ // panel
 			Entity *wrapper = ents->createUnique();
-			CAGE_COMPONENT_GUI(Scrollbars, sc, wrapper);
+			GuiScrollbarsComponent &sc = wrapper->value<GuiScrollbarsComponent>();
 			panel = ents->createUnique();
-			CAGE_COMPONENT_GUI(Parent, parent, panel);
+			GuiParentComponent &parent = panel->value<GuiParentComponent>();
 			parent.parent = wrapper->name();
-			CAGE_COMPONENT_GUI(Panel, g, panel);
-			CAGE_COMPONENT_GUI(LayoutTable, lt, panel);
+			GuiPanelComponent &g = panel->value<GuiPanelComponent>();
+			GuiLayoutTableComponent &lt = panel->value<GuiLayoutTableComponent>();
 		}
 
 		{ // player position
 			{ // label
 				Entity *e = ents->createUnique();
-				CAGE_COMPONENT_GUI(Parent, p, e);
+				GuiParentComponent &p = e->value<GuiParentComponent>();
 				p.parent = panel->name();
 				p.order = 1;
-				CAGE_COMPONENT_GUI(Label, l, e);
-				CAGE_COMPONENT_GUI(Text, t, e);
+				GuiLabelComponent &l = e->value<GuiLabelComponent>();
+				GuiTextComponent &t = e->value<GuiTextComponent>();
 				t.value = "Position: ";
 			}
 			{ // value
 				Entity *e = ents->createUnique();
-				CAGE_COMPONENT_GUI(Parent, p, e);
+				GuiParentComponent &p = e->value<GuiParentComponent>();
 				p.parent = panel->name();
 				p.order = 2;
-				CAGE_COMPONENT_GUI(Label, l, e);
-				CAGE_COMPONENT_GUI(Text, t, e);
+				GuiLabelComponent &l = e->value<GuiLabelComponent>();
+				GuiTextComponent &t = e->value<GuiTextComponent>();
 				playerPositionLabel = e->name();
 			}
 		}
@@ -65,20 +65,20 @@ namespace
 		{ // terrain generation progress
 			{ // label
 				Entity *e = ents->createUnique();
-				CAGE_COMPONENT_GUI(Parent, p, e);
+				GuiParentComponent &p = e->value<GuiParentComponent>();
 				p.parent = panel->name();
 				p.order = 3;
-				CAGE_COMPONENT_GUI(Label, l, e);
-				CAGE_COMPONENT_GUI(Text, t, e);
+				GuiLabelComponent &l = e->value<GuiLabelComponent>();
+				GuiTextComponent &t = e->value<GuiTextComponent>();
 				t.value = "Loading: ";
 			}
 			{ // value
 				Entity *e = ents->createUnique();
-				CAGE_COMPONENT_GUI(Parent, p, e);
+				GuiParentComponent &p = e->value<GuiParentComponent>();
 				p.parent = panel->name();
 				p.order = 4;
-				CAGE_COMPONENT_GUI(Label, l, e);
-				CAGE_COMPONENT_GUI(Text, t, e);
+				GuiLabelComponent &l = e->value<GuiLabelComponent>();
+				GuiTextComponent &t = e->value<GuiTextComponent>();
 				terrainGenerationProgressLabel = e->name();
 			}
 		}

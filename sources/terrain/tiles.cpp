@@ -6,9 +6,12 @@
 #include <cage-core/debug.h>
 
 #include <cage-engine/engine.h>
-#include <cage-engine/graphics.h>
 #include <cage-engine/opengl.h>
 #include <cage-engine/assetStructs.h>
+#include <cage-engine/model.h>
+#include <cage-engine/texture.h>
+#include <cage-engine/renderObject.h>
+#include <cage-engine/graphicsError.h>
 
 #include <vector>
 #include <array>
@@ -75,8 +78,6 @@ namespace
 
 	void engineUpdate()
 	{
-		OPTICK_EVENT("terrainTiles");
-
 		AssetManager *ass = engineAssets();
 		std::set<TilePos> neededTiles = stopping ? std::set<TilePos>() : findNeededTiles(findReadyTiles());
 		for (Tile &t : tiles)
@@ -118,7 +119,7 @@ namespace
 			{
 				{ // create the entity
 					t.entity = engineEntities()->createAnonymous();
-					CAGE_COMPONENT_ENGINE(Transform, tr, t.entity);
+					TransformComponent &tr = t.entity->value<TransformComponent>();
 					tr = t.pos.getTransform();
 				}
 
@@ -134,13 +135,13 @@ namespace
 					if (visible)
 					{
 						terrainAddCollider(t.objectName, t.cpuCollider.share(), t.pos.getTransform());
-						CAGE_COMPONENT_ENGINE(Render, r, t.entity);
+						RenderComponent &r = t.entity->value<RenderComponent>();
 						r.object = t.objectName;
 					}
 					else
 					{
 						terrainRemoveCollider(t.objectName);
-						t.entity->remove(RenderComponent::component);
+						t.entity->remove<RenderComponent>();
 					}
 					t.pos.visible = visible;
 				}
@@ -183,7 +184,6 @@ namespace
 
 	Holder<Texture> dispatchTexture(Holder<Image> &image)
 	{
-		OPTICK_EVENT("dispatchTexture");
 		Holder<Texture> t = newTexture();
 		t->importImage(image.get());
 		t->filters(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, 100);
@@ -195,7 +195,6 @@ namespace
 
 	Holder<Model> dispatchMesh(Holder<Mesh> &poly)
 	{
-		OPTICK_EVENT("dispatchMesh");
 		Holder<Model> m = newModel();
 		ModelHeader::MaterialData mat;
 		m->importMesh(+poly, { (char*)&mat, (char*)(&mat + 1) });
@@ -205,7 +204,6 @@ namespace
 
 	void engineDispatch()
 	{
-		OPTICK_EVENT("terrainDispatch");
 		AssetManager *ass = engineAssets();
 		CAGE_CHECK_GL_ERROR_DEBUG();
 		for (Tile &t : tiles)

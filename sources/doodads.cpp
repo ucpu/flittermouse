@@ -160,7 +160,7 @@ namespace
 		t.model.position = position;
 		t.model.orientation = orientation;
 		t.target = t.model.position + t.model.orientation * vec3(0, 0, -1);
-		CAGE_COMPONENT_ENGINE(Render, r, e);
+		RenderComponent &r = e->value<RenderComponent>();
 		r.object = HashString("flittermouse/player/magnet.object");
 	}
 
@@ -171,11 +171,11 @@ namespace
 		t.model.position = position;
 		t.model.orientation = orientation;
 		t.target = t.model.position + t.model.orientation * vec3(0, 0, -1);
-		CAGE_COMPONENT_ENGINE(Light, l, e);
+		cage::LightComponent &l = e->value<cage::LightComponent>();
 		l.lightType = LightTypeEnum::Spot;
 		l.color = randomChance3() * 0.3 + 0.7;
 		l.attenuation = vec3(1.5, 0, 0.05);
-		CAGE_COMPONENT_ENGINE(Shadowmap, s, e);
+		ShadowmapComponent &s = e->value<ShadowmapComponent>();
 		s.resolution = 2048;
 		s.worldSize = vec3(0.1, 100, 0);
 	}
@@ -188,14 +188,14 @@ namespace
 			GAME_COMPONENT(GunMuzzle, m, e);
 			m.model.position = position;
 			m.model.orientation = orientation;
-			CAGE_COMPONENT_ENGINE(Render, r, e);
+			RenderComponent &r = e->value<RenderComponent>();
 			r.object = HashString("flittermouse/player/muzzle.object");
 		}
 		{
 			Entity *e = engineEntities()->createAnonymous();
 			GAME_COMPONENT(GunTower, t, e);
 			t.muzzle = muzzle;
-			CAGE_COMPONENT_ENGINE(Render, r, e);
+			RenderComponent &r = e->value<RenderComponent>();
 			r.object = HashString("flittermouse/player/tower.object");
 		}
 	}
@@ -259,20 +259,20 @@ namespace
 			return;
 		}
 		Entity *e = engineEntities()->createUnique();
-		CAGE_COMPONENT_ENGINE(Transform, t, e);
+		TransformComponent &t = e->value<TransformComponent>();
 		t.position = c;
 		t.orientation = quat(v, up, true);
 		t.scale = d;
-		CAGE_COMPONENT_ENGINE(Render, r, e);
+		RenderComponent &r = e->value<RenderComponent>();
 		r.object = HashString("flittermouse/lightning/lightning.obj");
 		r.color = color;
-		CAGE_COMPONENT_ENGINE(TextureAnimation, anim, e);
+		TextureAnimationComponent &anim = e->value<TextureAnimationComponent>();
 		anim.offset = randomChance() * 100;
 		GAME_COMPONENT(Timeout, ttl, e);
 		ttl.ttl = 1;
 		if (randomChance() < lightProb)
 		{
-			CAGE_COMPONENT_ENGINE(Light, light, e);
+			cage::LightComponent &light = e->value<cage::LightComponent>();
 			light.color = color;
 			light.intensity = 1.5;
 			light.lightType = LightTypeEnum::Point;
@@ -280,12 +280,12 @@ namespace
 		}
 	}
 
-	void magnetDischarge(const transform &tp, const transform &tc, const vec3 &pp, const vec3 &pc)
+	void magnetDischarge(const transform &tc, const vec3 &pc)
 	{
 		if (randomChance() > 0.3 / (1 + sqr(distanceSquared(pc, tc.position))))
 			return;
 		vec3 color = randomChance3() * 0.4 + vec3(0, 0, 0.4);
-		CAGE_COMPONENT_ENGINE(Transform, cam, engineEntities()->get(1));
+		TransformComponent &cam = engineEntities()->get(1)->value<TransformComponent>();
 		vec3 start = tc.position + tc.orientation * vec3(0, 0, -0.005);
 		vec3 end = pc + (randomChance3() - 0.5) * 0.01;
 		magnetDischargeImpl(start, end, cam.position, color, 2);
@@ -293,38 +293,31 @@ namespace
 
 	void engineUpdate()
 	{
-		OPTICK_EVENT("player doodads");
 		if (!engineEntities()->has(10))
 			return;
 
-		CAGE_COMPONENT_ENGINE(Transform, p, engineEntities()->get(10));
-		const TransformComponent &pp = engineEntities()->get(10)->value<TransformComponent>(TransformComponent::componentHistory);
-
-		CAGE_COMPONENT_ENGINE(Transform, cameraTransform, engineEntities()->get(1));
-		CAGE_COMPONENT_ENGINE(Camera, cameraProperties, engineEntities()->get(1));
+		TransformComponent &p = engineEntities()->get(10)->value<TransformComponent>();
+		TransformComponent &cameraTransform = engineEntities()->get(1)->value<TransformComponent>();
+		CameraComponent &cameraProperties = engineEntities()->get(1)->value<CameraComponent>();
 
 		for (Entity *e : MagnetComponent::component->entities())
 		{
 			GAME_COMPONENT(Magnet, m, e);
-			const vec3 prevTarget = m.target;
-			CAGE_COMPONENT_ENGINE(Transform, t, e);
-			const transform prevTrans = t;
+			TransformComponent &t = e->value<TransformComponent>();
 			t = p * m.model;
-			m.target = p * inverse(pp) * m.target;
 			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), m.target, degs(40), 1, 3);
 			t.orientation = quat(normalize(m.target - t.position), t.orientation * vec3(0, 1, 0));
-			magnetDischarge(prevTrans, t, prevTarget, m.target);
+			magnetDischarge(t, m.target);
 		}
 
 		for (Entity *e : LightComponent::component->entities())
 		{
 			GAME_COMPONENT(Light, l, e);
-			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			TransformComponent &t = e->value<TransformComponent>();
 			t = p * l.model;
-			l.target = p * inverse(pp) * l.target;
 			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 12);
 			t.orientation = quat(normalize(l.target - t.position), t.orientation * vec3(0, 1, 0));
-			CAGE_COMPONENT_ENGINE(Light, ll, e);
+			cage::LightComponent &ll = e->value<cage::LightComponent>();
 			ll.intensity = interpolate(ll.intensity, sqr(distance(l.target, t.position) + 1), 0.02);
 			const real focus = distance(cameraTransform.position, l.target);
 			cameraProperties.depthOfField.focusDistance = interpolate(cameraProperties.depthOfField.focusDistance, focus, 0.05);
@@ -335,15 +328,15 @@ namespace
 		for (Entity *e : GunMuzzleComponent::component->entities())
 		{
 			GAME_COMPONENT(GunMuzzle, gm, e);
-			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			TransformComponent &t = e->value<TransformComponent>();
 			t = p * gm.model;
 		}
 
 		for (Entity *e : GunTowerComponent::component->entities())
 		{
 			GAME_COMPONENT(GunTower, gt, e);
-			CAGE_COMPONENT_ENGINE(Transform, gm, gt.muzzle);
-			CAGE_COMPONENT_ENGINE(Transform, t, e);
+			TransformComponent &gm = gt.muzzle->value<TransformComponent>();
+			TransformComponent &t = e->value<TransformComponent>();
 			t = gm;
 			t.orientation = quat(t.orientation * vec3(0, 0, -1), t.orientation * vec3(0, 1, 0), true);
 		}

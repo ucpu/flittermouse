@@ -48,10 +48,10 @@ void renderDebugRay(const Line &ln, const vec3 &color, uint32 duration)
 	Entity *e = engineEntities()->createAnonymous();
 	GAME_COMPONENT(Timeout, to, e);
 	to.ttl = duration;
-	CAGE_COMPONENT_ENGINE(Render, r, e);
+	RenderComponent &r = e->value<RenderComponent>();
 	r.object = HashString("flittermouse/laser/laser.obj");
 	r.color = color;
-	CAGE_COMPONENT_ENGINE(Transform, t, e);
+	TransformComponent &t = e->value<TransformComponent>();
 	t.position = ln.origin;
 	t.orientation = quat(ln.direction, vec3(0, 0, 1));
 	t.scale = ln.maximum;
@@ -94,6 +94,5 @@ void terrainRebuildColliders()
 	if (!collisionSearchNeedsRebuild)
 		return;
 	collisionSearchNeedsRebuild = false;
-	OPTICK_EVENT("terrainRebuildColliders");
 	collisionSearchData->rebuild();
 }

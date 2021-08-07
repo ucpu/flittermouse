@@ -427,29 +427,18 @@ namespace
 
 	void generateMesh(ProcTile &t)
 	{
-		OPTICK_EVENT("generateMesh");
-
 		{
 			MarchingCubesCreateConfig cfg;
 			cfg.resolution = ivec3(24);
 			cfg.box = Aabb(vec3(-1), vec3(1));
 			cfg.clip = false;
 			Holder<MarchingCubes> cubes = newMarchingCubes(cfg);
-			{
-				OPTICK_EVENT("densities");
-				cubes->updateByPosition(Delegate<real(const vec3 &)>().bind<ProcTile *, &meshGenerator>(&t));
-			}
-			{
-				OPTICK_EVENT("marchingCubes");
-				t.mesh = cubes->makeMesh();
-				OPTICK_TAG("faces", t.mesh->facesCount());
-				OPTICK_TAG("avgEdgeLen", averageEdgeLength(+t.mesh));
-			}
+			cubes->updateByPosition(Delegate<real(const vec3 &)>().bind<ProcTile *, &meshGenerator>(&t));
+			t.mesh = cubes->makeMesh();
 		}
 
 		/*
 		{
-			OPTICK_EVENT("simplify");
 			PolyhedronSimplificationConfig cfg;
 			cfg.minEdgeLength = 0.01;
 			cfg.maxEdgeLength = 0.25;
@@ -462,27 +451,21 @@ namespace
 		*/
 
 		{
-			OPTICK_EVENT("clip");
 			meshClip(+t.mesh, Aabb(vec3(-1.005), vec3(1.005)));
-			OPTICK_TAG("faces", t.mesh->facesCount());
 		}
 
 		{
-			OPTICK_EVENT("unwrap");
 			MeshUnwrapConfig cfg;
 			cfg.texelsPerUnit = 50.0f;
 			t.textureResolution = meshUnwrap(+t.mesh, cfg);
 			CAGE_ASSERT(t.textureResolution <= 2048);
 			if (t.textureResolution == 0)
 				t.mesh->clear();
-			OPTICK_TAG("faces", t.mesh->facesCount());
-			OPTICK_TAG("resolution", t.textureResolution);
 		}
 	}
 
 	void generateCollider(ProcTile &t)
 	{
-		OPTICK_EVENT("generateCollider");
 		t.collider = newCollider();
 		t.collider->importMesh(t.mesh.get());
 		t.collider->rebuild();
@@ -491,7 +474,6 @@ namespace
 	void generateTextures(ProcTile &t)
 	{
 		CAGE_ASSERT(t.textureResolution > 0);
-		OPTICK_EVENT("generateTextures");
 		t.albedo = newImage();
 		t.albedo->initialize(t.textureResolution, t.textureResolution, 3);
 		t.special = newImage();
@@ -501,11 +483,9 @@ namespace
 		cfg.generator.bind<ProcTile *, &textureGenerator>(&t);
 		cfg.width = cfg.height = t.textureResolution;
 		{
-			OPTICK_EVENT("generating");
 			meshGenerateTexture(+t.mesh, cfg);
 		}
 		{
-			OPTICK_EVENT("dilation");
 			imageDilation(+t.albedo, 2);
 			imageDilation(+t.special, 2);
 		}
@@ -533,9 +513,6 @@ namespace
 
 void terrainGenerate(const TilePos &tilePos, Holder<Mesh> &mesh, Holder<Collider> &collider, Holder<Image> &albedo, Holder<Image> &special)
 {
-	OPTICK_EVENT("terrainGenerate");
-	OPTICK_TAG("Tile", (stringizer() + tilePos).value.c_str());
-	
 	ProcTile t;
 	t.pos = tilePos;
 

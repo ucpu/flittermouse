@@ -3,8 +3,6 @@
 
 #include <cage-core/math.h>
 
-#include <optick.h>
-
 using namespace cage;
 
 void renderDebugRay(const Line &ln, const vec3 &color = vec3(), uint32 duration = 1);

@@ -8,7 +8,6 @@
 #include <cage-core/spatialStructure.h>
 #include <cage-core/variableSmoothingBuffer.h>
 
-#include <cage-engine/graphics.h>
 #include <cage-engine/engine.h>
 #include <cage-engine/window.h>
 
@@ -25,11 +24,9 @@ namespace
 
 	void engineUpdate()
 	{
-		OPTICK_EVENT("player");
-
 		uint64 time = engineControlTime();
-		CAGE_COMPONENT_ENGINE(Transform, ct, engineEntities()->get(1));
-		CAGE_COMPONENT_ENGINE(Transform, pt, engineEntities()->get(10));
+		TransformComponent &ct = engineEntities()->get(1)->value<TransformComponent>();
+		TransformComponent &pt = engineEntities()->get(10)->value<TransformComponent>();
 
 		{ // rotate camera
 			quat q = quat(degs(-mouseMoved[1] * 0.5), degs(-mouseMoved[0] * 0.5), degs(mouseMoved[2] * 15));
@@ -52,7 +49,7 @@ namespace
 		}
 
 		{ // update camera position
-			CAGE_COMPONENT_ENGINE(Transform, ct, engineEntities()->get(1));
+			TransformComponent &ct = engineEntities()->get(1)->value<TransformComponent>();
 			ct.position = pt.position + ct.orientation * vec3(0, 0.05, 0.2);
 		}
 
@@ -146,14 +143,14 @@ namespace
 
 		{ // the spaceship
 			Entity *e = engineEntities()->create(10);
-			CAGE_COMPONENT_ENGINE(Render, r, e);
+			RenderComponent &r = e->value<RenderComponent>();
 			r.object = HashString("flittermouse/player/ship.object");
 		}
 
 		{ // camera
 			Entity *e = engineEntities()->create(1);
-			CAGE_COMPONENT_ENGINE(Transform, t, e);
-			CAGE_COMPONENT_ENGINE(Camera, c, e);
+			TransformComponent &t = e->value<TransformComponent>();
+			CameraComponent &c = e->value<CameraComponent>();
 			c.near = 0.05;
 			c.far = 200;
 			c.ambientColor = c.ambientDirectionalColor = vec3(1);
