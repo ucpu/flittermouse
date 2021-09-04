@@ -46,7 +46,7 @@ namespace
 		uint32 specialName = 0;
 		uint32 objectName = 0;
 
-		real distanceToPlayer() const
+		Real distanceToPlayer() const
 		{
 			return pos.distanceToPlayer();
 		}
@@ -223,10 +223,10 @@ namespace
 				}
 
 				// transfer asset ownership
-				ass->fabricate<AssetSchemeIndexTexture, Texture>(t.albedoName, std::move(t.gpuAlbedo), stringizer() + "albedo " + t.pos);
-				ass->fabricate<AssetSchemeIndexTexture, Texture>(t.specialName, std::move(t.gpuSpecial), stringizer() + "special " + t.pos);
-				ass->fabricate<AssetSchemeIndexModel, Model>(t.meshName, std::move(t.gpuMesh), stringizer() + "mesh " + t.pos);
-				ass->fabricate<AssetSchemeIndexRenderObject, RenderObject>(t.objectName, std::move(t.renderObject), stringizer() + "object " + t.pos);
+				ass->fabricate<AssetSchemeIndexTexture, Texture>(t.albedoName, std::move(t.gpuAlbedo), Stringizer() + "albedo " + t.pos);
+				ass->fabricate<AssetSchemeIndexTexture, Texture>(t.specialName, std::move(t.gpuSpecial), Stringizer() + "special " + t.pos);
+				ass->fabricate<AssetSchemeIndexModel, Model>(t.meshName, std::move(t.gpuMesh), Stringizer() + "mesh " + t.pos);
+				ass->fabricate<AssetSchemeIndexRenderObject, RenderObject>(t.objectName, std::move(t.renderObject), Stringizer() + "object " + t.pos);
 
 				t.status = TileStateEnum::Entity;
 				break;
@@ -265,7 +265,7 @@ namespace
 	void generateRenderObject(Tile &t)
 	{
 		t.renderObject = newRenderObject();
-		real thresholds[1] = { 0 };
+		Real thresholds[1] = { 0 };
 		uint32 meshIndices[2] = { 0, 1 };
 		uint32 meshNames[1] = { t.meshName };
 		t.renderObject->setLods(thresholds, meshIndices, meshNames);
@@ -310,7 +310,7 @@ namespace
 	{
 		uint32 cpuCount = max(processorsCount(), 2u) - 1;
 		for (uint32 i = 0; i < cpuCount; i++)
-			generatorThreads.push_back(newThread(Delegate<void()>().bind<&generatorEntry>(), stringizer() + "generator " + i));
+			generatorThreads.push_back(newThread(Delegate<void()>().bind<&generatorEntry>(), Stringizer() + "generator " + i));
 	}
 
 	class Callbacks

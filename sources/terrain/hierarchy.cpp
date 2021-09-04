@@ -20,7 +20,7 @@ namespace
 
 	bool coarsenessTest(const TilePos &pos)
 	{
-		real d = pos.distanceToPlayer();
+		Real d = pos.distanceToPlayer();
 		return d > pos.radius * 4;
 	}
 
@@ -79,7 +79,7 @@ std::set<TilePos> findNeededTiles(const std::set<TilePos> &tilesReady)
 			}
 		}
 	}
-	//CAGE_LOG_DEBUG(SeverityEnum::Info, "terrain", stringizer() + "ready: " + tilesReady.size() + ", requested: " + tilesRequests.size());
-	terrainGenerationProgress = tilesRequests.empty() ? real() : real(tilesReady.size()) / tilesRequests.size();
+	
+	terrainGenerationProgress = tilesRequests.empty() ? Real() : Real(tilesReady.size()) / tilesRequests.size();
 	return tilesRequests;
 }

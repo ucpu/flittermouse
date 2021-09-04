@@ -17,12 +17,12 @@ namespace
 
 		{ // player position
 			GuiTextComponent &t = ents->get(playerPositionLabel)->value<GuiTextComponent>();
-			t.value = stringizer() + playerPosition;
+			t.value = Stringizer() + playerPosition;
 		}
 
 		{ // terrain generation progress
 			GuiTextComponent &t = ents->get(terrainGenerationProgressLabel)->value<GuiTextComponent>();
-			t.value = stringizer() + terrainGenerationProgress * 100 + " %";
+			t.value = Stringizer() + terrainGenerationProgress * 100 + " %";
 		}
 	}
 

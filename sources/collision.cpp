@@ -42,7 +42,7 @@ namespace
 	} callbacksInstance;
 }
 
-void renderDebugRay(const Line &ln, const vec3 &color, uint32 duration)
+void renderDebugRay(const Line &ln, const Vec3 &color, uint32 duration)
 {
 	CAGE_ASSERT(ln.normalized());
 	Entity *e = engineEntities()->createAnonymous();
@@ -53,28 +53,28 @@ void renderDebugRay(const Line &ln, const vec3 &color, uint32 duration)
 	r.color = color;
 	TransformComponent &t = e->value<TransformComponent>();
 	t.position = ln.origin;
-	t.orientation = quat(ln.direction, vec3(0, 0, 1));
+	t.orientation = Quat(ln.direction, Vec3(0, 0, 1));
 	t.scale = ln.maximum;
 }
 
-vec3 terrainIntersection(const Line &ln)
+Vec3 terrainIntersection(const Line &ln)
 {
 	CAGE_ASSERT(ln.isSegment());
 	if (!collisionSearchQuery->query(ln))
-		return vec3::Nan();
+		return Vec3::Nan();
 	CAGE_ASSERT(collisionSearchQuery->collisionPairs().size() >= 1);
 	Holder<const Collider> c;
-	transform tr;
+	Transform tr;
 	collisionSearchQuery->collider(c, tr);
 	Triangle t = c->triangles()[collisionSearchQuery->collisionPairs()[0].b];
 	t *= tr;
-	vec3 r = intersection(ln, t);
+	Vec3 r = intersection(ln, t);
 	CAGE_ASSERT(r.valid());
 	//renderDebugRay(makeSegment(ln.origin, r));
 	return r;
 }
 
-void terrainAddCollider(uint32 name, Holder<Collider> c, const transform &tr)
+void terrainAddCollider(uint32 name, Holder<Collider> c, const Transform &tr)
 {
 	CAGE_ASSERT(tr.valid());
 	CAGE_ASSERT(c);

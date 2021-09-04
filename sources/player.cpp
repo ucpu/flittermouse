@@ -11,16 +11,16 @@
 #include <cage-engine/engine.h>
 #include <cage-engine/window.h>
 
-vec3 playerPosition;
-real terrainGenerationProgress;
+Vec3 playerPosition;
+Real terrainGenerationProgress;
 
 namespace
 {
 	bool keyboardKeys[6]; // wsadeq
-	vec3 mouseMoved; // x, y, wheel
+	Vec3 mouseMoved; 
 
-	VariableSmoothingBuffer<quat, 3> cameraSmoothing;
-	vec3 playerSpeed;
+	VariableSmoothingBuffer<Quat, 3> cameraSmoothing;
+	Vec3 playerSpeed;
 
 	void engineUpdate()
 	{
@@ -29,8 +29,8 @@ namespace
 		TransformComponent &pt = engineEntities()->get(10)->value<TransformComponent>();
 
 		{ // rotate camera
-			quat q = quat(degs(-mouseMoved[1] * 0.5), degs(-mouseMoved[0] * 0.5), degs(mouseMoved[2] * 15));
-			mouseMoved = vec3();
+			Quat q = Quat(Degs(-mouseMoved[1] * 0.5), Degs(-mouseMoved[0] * 0.5), Degs(mouseMoved[2] * 15));
+			mouseMoved = Vec3();
 			cameraSmoothing.add(q);
 			ct.orientation = ct.orientation * cameraSmoothing.smooth();
 		}
@@ -40,8 +40,8 @@ namespace
 		}
 
 		{ // move the ship
-			vec3 a = vec3((int)keyboardKeys[3] - (int)keyboardKeys[2], (int)keyboardKeys[4] - (int)keyboardKeys[5], (int)keyboardKeys[1] - (int)keyboardKeys[0]);
-			if (a != vec3())
+			Vec3 a = Vec3((int)keyboardKeys[3] - (int)keyboardKeys[2], (int)keyboardKeys[4] - (int)keyboardKeys[5], (int)keyboardKeys[1] - (int)keyboardKeys[0]);
+			if (a != Vec3())
 				a = normalize(a);
 			a = pt.orientation * a;
 			playerSpeed = playerSpeed * 0.93 + a * 0.006;
@@ -50,7 +50,7 @@ namespace
 
 		{ // update camera position
 			TransformComponent &ct = engineEntities()->get(1)->value<TransformComponent>();
-			ct.position = pt.position + ct.orientation * vec3(0, 0.05, 0.2);
+			ct.position = pt.position + ct.orientation * Vec3(0, 0.05, 0.2);
 		}
 
 		playerPosition = pt.position;
@@ -97,34 +97,34 @@ namespace
 		return false;
 	}
 
-	ivec2 centerMouse()
+	Vec2i centerMouse()
 	{
-		ivec2 pt2 = engineWindow()->resolution();
+		Vec2i pt2 = engineWindow()->resolution();
 		pt2[0] /= 2;
 		pt2[1] /= 2;
 		engineWindow()->mousePosition(pt2);
 		return pt2;
 	}
 
-	bool mousePress(MouseButtonsFlags b, ModifiersFlags m, const ivec2 &p)
+	bool mousePress(MouseButtonsFlags b, ModifiersFlags m, const Vec2i &p)
 	{
 		if (b == MouseButtonsFlags::Left)
 			centerMouse();
 		return false;
 	}
 
-	bool mouseMove(MouseButtonsFlags b, ModifiersFlags m, const ivec2 &p)
+	bool mouseMove(MouseButtonsFlags b, ModifiersFlags m, const Vec2i &p)
 	{
 		if (b == MouseButtonsFlags::Left)
 		{
-			ivec2 c = centerMouse();
+			Vec2i c = centerMouse();
 			mouseMoved[0] += p[0] - c[0];
 			mouseMoved[1] += p[1] - c[1];
 		}
 		return false;
 	}
 
-	bool mouseWheel(sint32 wheel, ModifiersFlags m, const ivec2 &p)
+	bool mouseWheel(sint32 wheel, ModifiersFlags m, const Vec2i &p)
 	{
 		mouseMoved[2] += wheel;
 		return false;
@@ -153,7 +153,7 @@ namespace
 			CameraComponent &c = e->value<CameraComponent>();
 			c.near = 0.05;
 			c.far = 200;
-			c.ambientColor = c.ambientDirectionalColor = vec3(1);
+			c.ambientColor = c.ambientDirectionalColor = Vec3(1);
 			c.ambientIntensity = 0.02;
 			c.ambientDirectionalIntensity = 0.15;
 			c.effects = CameraEffectsFlags::Default | CameraEffectsFlags::DepthOfField;

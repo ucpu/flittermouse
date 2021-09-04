@@ -125,21 +125,21 @@ namespace
 	struct MagnetComponent
 	{
 		static EntityComponent *component;
-		transform model;
-		vec3 target;
+		Transform model;
+		Vec3 target;
 	};
 
 	struct LightComponent
 	{
 		static EntityComponent *component;
-		transform model;
-		vec3 target;
+		Transform model;
+		Vec3 target;
 	};
 
 	struct GunMuzzleComponent
 	{
 		static EntityComponent *component;
-		transform model;
+		Transform model;
 	};
 
 	struct GunTowerComponent
@@ -153,34 +153,34 @@ namespace
 	EntityComponent *GunMuzzleComponent::component;
 	EntityComponent *GunTowerComponent::component;
 
-	void createMagnet(const vec3 &position, const quat &orientation)
+	void createMagnet(const Vec3 &position, const Quat &orientation)
 	{
 		Entity *e = engineEntities()->createAnonymous();
 		GAME_COMPONENT(Magnet, t, e);
 		t.model.position = position;
 		t.model.orientation = orientation;
-		t.target = t.model.position + t.model.orientation * vec3(0, 0, -1);
+		t.target = t.model.position + t.model.orientation * Vec3(0, 0, -1);
 		RenderComponent &r = e->value<RenderComponent>();
 		r.object = HashString("flittermouse/player/magnet.object");
 	}
 
-	void createLight(const vec3 &position, const quat &orientation)
+	void createLight(const Vec3 &position, const Quat &orientation)
 	{
 		Entity *e = engineEntities()->createAnonymous();
 		GAME_COMPONENT(Light, t, e);
 		t.model.position = position;
 		t.model.orientation = orientation;
-		t.target = t.model.position + t.model.orientation * vec3(0, 0, -1);
+		t.target = t.model.position + t.model.orientation * Vec3(0, 0, -1);
 		cage::LightComponent &l = e->value<cage::LightComponent>();
 		l.lightType = LightTypeEnum::Spot;
 		l.color = randomChance3() * 0.3 + 0.7;
-		l.attenuation = vec3(1.5, 0, 0.05);
+		l.attenuation = Vec3(1.5, 0, 0.05);
 		ShadowmapComponent &s = e->value<ShadowmapComponent>();
 		s.resolution = 2048;
-		s.worldSize = vec3(0.1, 100, 0);
+		s.worldSize = Vec3(0.1, 100, 0);
 	}
 
-	void createGun(const vec3 &position, const quat &orientation)
+	void createGun(const Vec3 &position, const Quat &orientation)
 	{
 		Entity *muzzle = nullptr;
 		{
@@ -200,20 +200,20 @@ namespace
 		}
 	}
 
-	void aimAtClosestWallTarget(const vec3 &origin, const vec3 &initialDirection, vec3 &target, const rads maxDeviation, const uint32 maxAttempts, const real maxReach)
+	void aimAtClosestWallTarget(const Vec3 &origin, const Vec3 &initialDirection, Vec3 &target, const Rads maxDeviation, const uint32 maxAttempts, const Real maxReach)
 	{
-		const real maxDeviDot = cos(maxDeviation);
+		const Real maxDeviDot = cos(maxDeviation);
 
-		const auto &check = [&](const vec3 &p) -> bool
+		const auto &check = [&](const Vec3 &p) -> bool
 		{
-			real c = dot(normalize(p - origin), initialDirection);
+			Real c = dot(normalize(p - origin), initialDirection);
 			return c > maxDeviDot;
 		};
 
-		const auto &reposition = [&](const vec3 &p) -> vec3
+		const auto &reposition = [&](const Vec3 &p) -> Vec3
 		{
-			vec3 t = origin + normalize(p - origin) * maxReach;
-			vec3 q = terrainIntersection(makeSegment(origin, t));
+			Vec3 t = origin + normalize(p - origin) * maxReach;
+			Vec3 q = terrainIntersection(makeSegment(origin, t));
 			return q.valid() ? q : t;
 		};
 
@@ -221,7 +221,7 @@ namespace
 		target = reposition(target);
 
 		{
-			vec3 p = origin + initialDirection;
+			Vec3 p = origin + initialDirection;
 			p = reposition(p);
 			if (distanceSquared(origin, p) < distanceSquared(origin, target))
 				target = p;
@@ -229,7 +229,7 @@ namespace
 
 		for (uint32 attempt = 0; attempt < maxAttempts; attempt++)
 		{
-			vec3 p = target + randomDirection3() * 0.1;
+			Vec3 p = target + randomDirection3() * 0.1;
 			if (!check(p))
 				continue;
 			p = reposition(p);
@@ -239,20 +239,20 @@ namespace
 		CAGE_ASSERT(target.valid() && check(target) && distance(origin, target) < maxReach + 1e-5);
 	}
 
-	void magnetDischargeImpl(const vec3 &a, const vec3 &b, const vec3 &cam, const vec3 &color, real lightProb)
+	void magnetDischargeImpl(const Vec3 &a, const Vec3 &b, const Vec3 &cam, const Vec3 &color, Real lightProb)
 	{
-		real d = distance(a, b);
-		vec3 v = normalize(b - a);
-		vec3 c = (a + b) * 0.5;
-		vec3 up = normalize(cam - c);
+		Real d = distance(a, b);
+		Vec3 v = normalize(b - a);
+		Vec3 c = (a + b) * 0.5;
+		Vec3 up = normalize(cam - c);
 #ifdef CAGE_DEBUG
-		constexpr real threshold = 0.15;
+		constexpr Real threshold = 0.15;
 #else
-		constexpr real threshold = 0.03;
+		constexpr Real threshold = 0.03;
 #endif // CAGE_DEBUG
 		if (d > threshold)
 		{
-			vec3 side = normalize(cross(v, up));
+			Vec3 side = normalize(cross(v, up));
 			c += side * (d * randomRange(-0.2, 0.2));
 			magnetDischargeImpl(a, c, cam, color, lightProb * 0.5);
 			magnetDischargeImpl(c, b, cam, color, lightProb * 0.5);
@@ -261,7 +261,7 @@ namespace
 		Entity *e = engineEntities()->createUnique();
 		TransformComponent &t = e->value<TransformComponent>();
 		t.position = c;
-		t.orientation = quat(v, up, true);
+		t.orientation = Quat(v, up, true);
 		t.scale = d;
 		RenderComponent &r = e->value<RenderComponent>();
 		r.object = HashString("flittermouse/lightning/lightning.obj");
@@ -276,18 +276,18 @@ namespace
 			light.color = color;
 			light.intensity = 1.5;
 			light.lightType = LightTypeEnum::Point;
-			light.attenuation = vec3(0.5, 0, 0.4);
+			light.attenuation = Vec3(0.5, 0, 0.4);
 		}
 	}
 
-	void magnetDischarge(const transform &tc, const vec3 &pc)
+	void magnetDischarge(const Transform &tc, const Vec3 &pc)
 	{
 		if (randomChance() > 0.3 / (1 + sqr(distanceSquared(pc, tc.position))))
 			return;
-		vec3 color = randomChance3() * 0.4 + vec3(0, 0, 0.4);
+		Vec3 color = randomChance3() * 0.4 + Vec3(0, 0, 0.4);
 		TransformComponent &cam = engineEntities()->get(1)->value<TransformComponent>();
-		vec3 start = tc.position + tc.orientation * vec3(0, 0, -0.005);
-		vec3 end = pc + (randomChance3() - 0.5) * 0.01;
+		Vec3 start = tc.position + tc.orientation * Vec3(0, 0, -0.005);
+		Vec3 end = pc + (randomChance3() - 0.5) * 0.01;
 		magnetDischargeImpl(start, end, cam.position, color, 2);
 	}
 
@@ -305,8 +305,8 @@ namespace
 			GAME_COMPONENT(Magnet, m, e);
 			TransformComponent &t = e->value<TransformComponent>();
 			t = p * m.model;
-			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), m.target, degs(40), 1, 3);
-			t.orientation = quat(normalize(m.target - t.position), t.orientation * vec3(0, 1, 0));
+			aimAtClosestWallTarget(t.position, t.orientation * Vec3(0, 0, -1), m.target, Degs(40), 1, 3);
+			t.orientation = Quat(normalize(m.target - t.position), t.orientation * Vec3(0, 1, 0));
 			magnetDischarge(t, m.target);
 		}
 
@@ -315,11 +315,11 @@ namespace
 			GAME_COMPONENT(Light, l, e);
 			TransformComponent &t = e->value<TransformComponent>();
 			t = p * l.model;
-			aimAtClosestWallTarget(t.position, t.orientation * vec3(0, 0, -1), l.target, degs(15), 5, 12);
-			t.orientation = quat(normalize(l.target - t.position), t.orientation * vec3(0, 1, 0));
+			aimAtClosestWallTarget(t.position, t.orientation * Vec3(0, 0, -1), l.target, Degs(15), 5, 12);
+			t.orientation = Quat(normalize(l.target - t.position), t.orientation * Vec3(0, 1, 0));
 			cage::LightComponent &ll = e->value<cage::LightComponent>();
 			ll.intensity = interpolate(ll.intensity, sqr(distance(l.target, t.position) + 1), 0.02);
-			const real focus = distance(cameraTransform.position, l.target);
+			const Real focus = distance(cameraTransform.position, l.target);
 			cameraProperties.depthOfField.focusDistance = interpolate(cameraProperties.depthOfField.focusDistance, focus, 0.05);
 		}
 		cameraProperties.depthOfField.focusRadius = 1;
@@ -338,18 +338,18 @@ namespace
 			TransformComponent &gm = gt.muzzle->value<TransformComponent>();
 			TransformComponent &t = e->value<TransformComponent>();
 			t = gm;
-			t.orientation = quat(t.orientation * vec3(0, 0, -1), t.orientation * vec3(0, 1, 0), true);
+			t.orientation = Quat(t.orientation * Vec3(0, 0, -1), t.orientation * Vec3(0, 1, 0), true);
 		}
 	}
 
-	vec3 convPos(const vec3 &v)
+	Vec3 convPos(const Vec3 &v)
 	{
-		return vec3(v[0], v[2], -v[1]) * 0.02;
+		return Vec3(v[0], v[2], -v[1]) * 0.02;
 	}
 
-	quat convRot(const vec3 &v)
+	Quat convRot(const Vec3 &v)
 	{
-		return quat(rads(), rads(v[2]), rads()) * quat(rads(), rads(), rads(-v[1])) * quat(rads(v[0]), rads(), rads()) * quat(degs(90), degs(), degs());
+		return Quat(Rads(), Rads(v[2]), Rads()) * Quat(Rads(), Rads(), Rads(-v[1])) * Quat(Rads(v[0]), Rads(), Rads()) * Quat(Degs(90), Degs(), Degs());
 	}
 
 	void engineInitialize()
@@ -360,10 +360,10 @@ namespace
 		GunTowerComponent::component = engineEntities()->defineComponent(GunTowerComponent());
 		Holder<Ini> ini = newIni();
 		ini->importBuffer({ playerDoodadsPositionsIni, playerDoodadsPositionsIni + std::strlen(playerDoodadsPositionsIni) });
-		for (const string &s : ini->sections())
+		for (const String &s : ini->sections())
 		{
-			const vec3 p = convPos(vec3::parse(ini->getString(s, "pos")));
-			const quat r = convRot(vec3::parse(ini->getString(s, "rot")));
+			const Vec3 p = convPos(Vec3::parse(ini->getString(s, "pos")));
+			const Quat r = convRot(Vec3::parse(ini->getString(s, "rot")));
 			if (isPattern(s, "", "magnet", ""))
 				createMagnet(p, r);
 			else if (isPattern(s, "", "light", ""))

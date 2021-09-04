@@ -7,17 +7,17 @@
 
 struct TilePos
 {
-	ivec3 pos; // center at the finest level
+	Vec3i pos; 
 	sint32 radius = 0;
 	bool visible = true;
 
 	Aabb getBox() const; // aabb in world space
-	transform getTransform() const;
-	real distanceToPlayer() const;
+	Transform getTransform() const;
+	Real distanceToPlayer() const;
 	bool operator < (const TilePos &other) const;
 };
 
-inline stringizer &operator + (stringizer &s, const TilePos &p)
+inline Stringizer &operator + (Stringizer &s, const TilePos &p)
 {
 	return s + p.radius + "__" + p.pos[0] + "_" + p.pos[1] + "_" + p.pos[2];
 }

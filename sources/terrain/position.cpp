@@ -4,15 +4,15 @@
 
 Aabb TilePos::getBox() const
 {
-	return Aabb(vec3(-1), vec3(1)) * getTransform();
+	return Aabb(Vec3(-1), Vec3(1)) * getTransform();
 }
 
-transform TilePos::getTransform() const
+Transform TilePos::getTransform() const
 {
-	return transform(vec3(pos[0], pos[1], pos[2]), quat(), radius);
+	return Transform(Vec3(pos[0], pos[1], pos[2]), Quat(), radius);
 }
 
-real TilePos::distanceToPlayer() const
+Real TilePos::distanceToPlayer() const
 {
 	return distance(getBox(), playerPosition);
 }
