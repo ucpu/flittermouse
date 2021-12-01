@@ -125,39 +125,30 @@ namespace
 {
 	struct MagnetComponent
 	{
-		static EntityComponent *component;
 		Transform model;
 		Vec3 target;
 	};
 
 	struct LightComponent
 	{
-		static EntityComponent *component;
 		Transform model;
 		Vec3 target;
 	};
 
 	struct GunMuzzleComponent
 	{
-		static EntityComponent *component;
 		Transform model;
 	};
 
 	struct GunTowerComponent
 	{
-		static EntityComponent *component;
 		Entity *muzzle = nullptr;
 	};
-
-	EntityComponent *MagnetComponent::component;
-	EntityComponent *LightComponent::component;
-	EntityComponent *GunMuzzleComponent::component;
-	EntityComponent *GunTowerComponent::component;
 
 	void createMagnet(const Vec3 &position, const Quat &orientation)
 	{
 		Entity *e = engineEntities()->createAnonymous();
-		GAME_COMPONENT(Magnet, t, e);
+		MagnetComponent &t = e->value<MagnetComponent>();
 		t.model.position = position;
 		t.model.orientation = orientation;
 		t.target = t.model.position + t.model.orientation * Vec3(0, 0, -1);
@@ -168,7 +159,7 @@ namespace
 	void createLight(const Vec3 &position, const Quat &orientation)
 	{
 		Entity *e = engineEntities()->createAnonymous();
-		GAME_COMPONENT(Light, t, e);
+		LightComponent &t = e->value<LightComponent>();
 		t.model.position = position;
 		t.model.orientation = orientation;
 		t.target = t.model.position + t.model.orientation * Vec3(0, 0, -1);
@@ -186,7 +177,7 @@ namespace
 		Entity *muzzle = nullptr;
 		{
 			Entity *e = muzzle = engineEntities()->createAnonymous();
-			GAME_COMPONENT(GunMuzzle, m, e);
+			GunMuzzleComponent &m = e->value<GunMuzzleComponent>();
 			m.model.position = position;
 			m.model.orientation = orientation;
 			RenderComponent &r = e->value<RenderComponent>();
@@ -194,7 +185,7 @@ namespace
 		}
 		{
 			Entity *e = engineEntities()->createAnonymous();
-			GAME_COMPONENT(GunTower, t, e);
+			GunTowerComponent &t = e->value<GunTowerComponent>();
 			t.muzzle = muzzle;
 			RenderComponent &r = e->value<RenderComponent>();
 			r.object = HashString("flittermouse/player/tower.object");
@@ -269,7 +260,7 @@ namespace
 		r.color = color;
 		TextureAnimationComponent &anim = e->value<TextureAnimationComponent>();
 		anim.offset = randomChance() * 100;
-		GAME_COMPONENT(Timeout, ttl, e);
+		TimeoutComponent &ttl = e->value<TimeoutComponent>();
 		ttl.ttl = 1;
 		if (randomChance() < lightProb)
 		{
@@ -301,9 +292,9 @@ namespace
 		TransformComponent &cameraTransform = engineEntities()->get(1)->value<TransformComponent>();
 		CameraComponent &cameraProperties = engineEntities()->get(1)->value<CameraComponent>();
 
-		for (Entity *e : MagnetComponent::component->entities())
+		for (Entity *e : engineEntities()->component<MagnetComponent>()->entities())
 		{
-			GAME_COMPONENT(Magnet, m, e);
+			MagnetComponent &m = e->value<MagnetComponent>();
 			TransformComponent &t = e->value<TransformComponent>();
 			t = p * m.model;
 			aimAtClosestWallTarget(t.position, t.orientation * Vec3(0, 0, -1), m.target, Degs(40), 1, 3);
@@ -311,9 +302,9 @@ namespace
 			magnetDischarge(t, m.target);
 		}
 
-		for (Entity *e : LightComponent::component->entities())
+		for (Entity *e : engineEntities()->component<LightComponent>()->entities())
 		{
-			GAME_COMPONENT(Light, l, e);
+			LightComponent &l = e->value<LightComponent>();
 			TransformComponent &t = e->value<TransformComponent>();
 			t = p * l.model;
 			aimAtClosestWallTarget(t.position, t.orientation * Vec3(0, 0, -1), l.target, Degs(15), 5, 12);
@@ -326,16 +317,16 @@ namespace
 		cameraProperties.depthOfField.focusRadius = 1;
 		cameraProperties.depthOfField.blendRadius = cameraProperties.depthOfField.focusDistance * 1.2;
 
-		for (Entity *e : GunMuzzleComponent::component->entities())
+		for (Entity *e : engineEntities()->component<GunMuzzleComponent>()->entities())
 		{
-			GAME_COMPONENT(GunMuzzle, gm, e);
+			GunMuzzleComponent &gm = e->value<GunMuzzleComponent>();
 			TransformComponent &t = e->value<TransformComponent>();
 			t = p * gm.model;
 		}
 
-		for (Entity *e : GunTowerComponent::component->entities())
+		for (Entity *e : engineEntities()->component<GunTowerComponent>()->entities())
 		{
-			GAME_COMPONENT(GunTower, gt, e);
+			GunTowerComponent &gt = e->value<GunTowerComponent>();
 			TransformComponent &gm = gt.muzzle->value<TransformComponent>();
 			TransformComponent &t = e->value<TransformComponent>();
 			t = gm;
@@ -355,10 +346,10 @@ namespace
 
 	void engineInitialize()
 	{
-		MagnetComponent::component = engineEntities()->defineComponent(MagnetComponent());
-		LightComponent::component = engineEntities()->defineComponent(LightComponent());
-		GunMuzzleComponent::component = engineEntities()->defineComponent(GunMuzzleComponent());
-		GunTowerComponent::component = engineEntities()->defineComponent(GunTowerComponent());
+		engineEntities()->defineComponent(MagnetComponent());
+		engineEntities()->defineComponent(LightComponent());
+		engineEntities()->defineComponent(GunMuzzleComponent());
+		engineEntities()->defineComponent(GunTowerComponent());
 		Holder<Ini> ini = newIni();
 		ini->importBuffer({ playerDoodadsPositionsIni, playerDoodadsPositionsIni + std::strlen(playerDoodadsPositionsIni) });
 		for (const String &s : ini->sections())

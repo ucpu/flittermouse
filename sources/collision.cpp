@@ -46,7 +46,7 @@ void renderDebugRay(const Line &ln, const Vec3 &color, uint32 duration)
 {
 	CAGE_ASSERT(ln.normalized());
 	Entity *e = engineEntities()->createAnonymous();
-	GAME_COMPONENT(Timeout, to, e);
+	TimeoutComponent &to = e->value<TimeoutComponent>();
 	to.ttl = duration;
 	RenderComponent &r = e->value<RenderComponent>();
 	r.object = HashString("flittermouse/laser/laser.obj");

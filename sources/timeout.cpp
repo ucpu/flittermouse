@@ -7,15 +7,14 @@
 #include <cage-simple/engine.h>
 
 EntityGroup *entitiesToDestroy;
-EntityComponent *TimeoutComponent::component;
 
 namespace
 {
 	void engineUpdate()
 	{
-		for (Entity *e : TimeoutComponent::component->entities())
+		for (Entity *e : engineEntities()->component<TimeoutComponent>()->entities())
 		{
-			GAME_COMPONENT(Timeout, t, e);
+			TimeoutComponent &t = e->value<TimeoutComponent>();
 			if (t.ttl-- == 0)
 				e->add(entitiesToDestroy);
 		}
@@ -25,7 +24,7 @@ namespace
 	void engineInitialize()
 	{
 		entitiesToDestroy = engineEntities()->defineGroup();
-		TimeoutComponent::component = engineEntities()->defineComponent(TimeoutComponent());
+		engineEntities()->defineComponent(TimeoutComponent());
 	}
 
 	class Callbacks
