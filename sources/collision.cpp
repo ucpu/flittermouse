@@ -5,8 +5,8 @@
 #include <cage-core/geometry.h>
 #include <cage-core/collider.h>
 #include <cage-core/collisionStructure.h>
-
-#include <cage-engine/engine.h>
+#include <cage-engine/scene.h>
+#include <cage-simple/engine.h>
 
 using namespace cage;
 

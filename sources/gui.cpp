@@ -1,10 +1,9 @@
 #include "common.h"
 
 #include <cage-core/entities.h>
-
-#include <cage-engine/core.h>
-#include <cage-engine/engine.h>
-#include <cage-engine/gui.h>
+#include <cage-engine/scene.h>
+#include <cage-engine/guiComponents.h>
+#include <cage-simple/engine.h>
 
 namespace
 {
@@ -13,7 +12,7 @@ namespace
 
 	void engineUpdate()
 	{
-		EntityManager *ents = engineGui()->entities();
+		EntityManager *ents = engineGuiEntities();
 
 		{ // player position
 			GuiTextComponent &t = ents->get(playerPositionLabel)->value<GuiTextComponent>();
@@ -28,7 +27,7 @@ namespace
 
 	void engineInitialize()
 	{
-		EntityManager *ents = engineGui()->entities();
+		EntityManager *ents = engineGuiEntities();
 
 		Entity *panel = nullptr;
 		{ // panel

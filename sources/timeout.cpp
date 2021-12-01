@@ -3,9 +3,8 @@
 #include <cage-core/entities.h>
 #include <cage-core/hashString.h>
 #include <cage-core/color.h>
-
-#include <cage-engine/core.h>
-#include <cage-engine/engine.h>
+#include <cage-engine/scene.h>
+#include <cage-simple/engine.h>
 
 EntityGroup *entitiesToDestroy;
 EntityComponent *TimeoutComponent::component;

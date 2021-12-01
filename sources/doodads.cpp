@@ -5,7 +5,8 @@
 #include <cage-core/geometry.h>
 #include <cage-core/hashString.h>
 #include <cage-core/string.h>
-#include <cage-engine/engine.h>
+#include <cage-engine/scene.h>
+#include <cage-simple/engine.h>
 
 #include <cstring> // std::strlen
 

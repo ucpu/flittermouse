@@ -4,14 +4,16 @@
 #include <cage-core/concurrent.h>
 #include <cage-core/assetManager.h>
 #include <cage-core/debug.h>
-
-#include <cage-engine/engine.h>
+#include <cage-core/meshMaterial.h>
+#include <cage-core/serialization.h>
+#include <cage-engine/scene.h>
 #include <cage-engine/opengl.h>
 #include <cage-engine/assetStructs.h>
 #include <cage-engine/model.h>
 #include <cage-engine/texture.h>
 #include <cage-engine/renderObject.h>
 #include <cage-engine/graphicsError.h>
+#include <cage-simple/engine.h>
 
 #include <vector>
 #include <array>
@@ -196,8 +198,8 @@ namespace
 	Holder<Model> dispatchMesh(Holder<Mesh> &poly)
 	{
 		Holder<Model> m = newModel();
-		ModelHeader::MaterialData mat;
-		m->importMesh(+poly, { (char*)&mat, (char*)(&mat + 1) });
+		MeshMaterial mat;
+		m->importMesh(+poly, bufferView(mat));
 		poly.clear();
 		return m;
 	}

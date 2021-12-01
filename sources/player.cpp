@@ -7,9 +7,9 @@
 #include <cage-core/color.h>
 #include <cage-core/spatialStructure.h>
 #include <cage-core/variableSmoothingBuffer.h>
-
-#include <cage-engine/engine.h>
+#include <cage-engine/scene.h>
 #include <cage-engine/window.h>
+#include <cage-simple/engine.h>
 
 Vec3 playerPosition;
 Real terrainGenerationProgress;
@@ -85,16 +85,14 @@ namespace
 		}
 	}
 
-	bool keyPress(uint32 key, ModifiersFlags m)
+	void keyPress(InputKey in)
 	{
-		setKeyboardKey(key, true);
-		return false;
+		setKeyboardKey(in.key, true);
 	}
 
-	bool keyRelease(uint32 key, ModifiersFlags m)
+	void keyRelease(InputKey in)
 	{
-		setKeyboardKey(key, false);
-		return false;
+		setKeyboardKey(in.key, false);
 	}
 
 	Vec2i centerMouse()
@@ -106,40 +104,45 @@ namespace
 		return pt2;
 	}
 
-	bool mousePress(MouseButtonsFlags b, ModifiersFlags m, const Vec2i &p)
+	void mousePress(InputMouse in)
 	{
-		if (b == MouseButtonsFlags::Left)
+		if (in.buttons == MouseButtonsFlags::Left)
 			centerMouse();
-		return false;
 	}
 
-	bool mouseMove(MouseButtonsFlags b, ModifiersFlags m, const Vec2i &p)
+	void mouseMove(InputMouse in)
 	{
-		if (b == MouseButtonsFlags::Left)
+		if (in.buttons == MouseButtonsFlags::Left)
 		{
 			Vec2i c = centerMouse();
-			mouseMoved[0] += p[0] - c[0];
-			mouseMoved[1] += p[1] - c[1];
+			mouseMoved[0] += in.position[0] - c[0];
+			mouseMoved[1] += in.position[1] - c[1];
 		}
-		return false;
 	}
 
-	bool mouseWheel(sint32 wheel, ModifiersFlags m, const Vec2i &p)
+	void mouseWheel(InputMouseWheel in)
 	{
-		mouseMoved[2] += wheel;
-		return false;
+		mouseMoved[2] += in.wheel;
 	}
 
-	WindowEventListeners windowListeners;
+	InputListener<InputClassEnum::KeyPress, InputKey> keyPressListener;
+	InputListener<InputClassEnum::KeyRelease, InputKey> keyReleaseListener;
+	InputListener<InputClassEnum::MousePress, InputMouse> mousePressListener;
+	InputListener<InputClassEnum::MouseMove, InputMouse> mouseMoveListener;
+	InputListener<InputClassEnum::MouseWheel, InputMouseWheel> mouseWheelListener;
 
 	void engineInitialize()
 	{
-		windowListeners.attachAll(engineWindow());
-		windowListeners.keyPress.bind<&keyPress>();
-		windowListeners.keyRelease.bind<&keyRelease>();
-		windowListeners.mousePress.bind<&mousePress>();
-		windowListeners.mouseMove.bind<&mouseMove>();
-		windowListeners.mouseWheel.bind<&mouseWheel>();
+		keyPressListener.attach(engineWindow()->events);
+		keyPressListener.bind<&keyPress>();
+		keyReleaseListener.attach(engineWindow()->events);
+		keyReleaseListener.bind<&keyRelease>();
+		mousePressListener.attach(engineWindow()->events);
+		mousePressListener.bind<&mousePress>();
+		mouseMoveListener.attach(engineWindow()->events);
+		mouseMoveListener.bind<&mouseMove>();
+		mouseWheelListener.attach(engineWindow()->events);
+		mouseWheelListener.bind<&mouseWheel>();
 
 		{ // the spaceship
 			Entity *e = engineEntities()->create(10);
