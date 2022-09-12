@@ -5,6 +5,13 @@
 
 #include <set>
 
+namespace cage
+{
+	class Mesh;
+	class Collider;
+	class Image;
+}
+
 struct TilePos
 {
 	Vec3i pos; 

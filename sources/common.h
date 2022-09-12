@@ -3,6 +3,12 @@
 
 #include <cage-core/math.h>
 
+namespace cage
+{
+	class Collider;
+	class EntityGroup;
+}
+
 using namespace cage;
 
 void renderDebugRay(const Line &ln, const Vec3 &color = Vec3(), uint32 duration = 1);
