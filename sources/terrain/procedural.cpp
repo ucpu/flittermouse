@@ -1,7 +1,7 @@
 #include "terrain.h"
 
-#include <cage-core/image.h>
-#include <cage-core/mesh.h>
+#include <cage-core/imageAlgorithms.h>
+#include <cage-core/meshAlgorithms.h>
 #include <cage-core/collider.h>
 #include <cage-core/marchingCubes.h>
 #include <cage-core/noiseFunction.h>
