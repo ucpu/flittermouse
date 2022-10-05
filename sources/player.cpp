@@ -159,7 +159,7 @@ namespace
 			c.ambientColor = c.ambientDirectionalColor = Vec3(1);
 			c.ambientIntensity = 0.02;
 			c.ambientDirectionalIntensity = 0.15;
-			c.effects = CameraEffectsFlags::Default | CameraEffectsFlags::DepthOfField;
+			c.effects = CameraEffectsFlags::Default | CameraEffectsFlags::DepthOfField | CameraEffectsFlags::EyeAdaptation;
 		}
 	}
 
