@@ -437,21 +437,8 @@ namespace
 			t.mesh = cubes->makeMesh();
 		}
 
-		/*
 		{
-			PolyhedronSimplificationConfig cfg;
-			cfg.minEdgeLength = 0.01;
-			cfg.maxEdgeLength = 0.25;
-			cfg.approximateError = 0.01;
-			cfg.useProjection = false;
-			polyhedronSimplify(+t.mesh, cfg);
-			OPTICK_TAG("faces", t.mesh->facesCount());
-			OPTICK_TAG("avgEdgeLen", averageEdgeLength(+t.mesh));
-		}
-		*/
-
-		{
-			meshClip(+t.mesh, Aabb(Vec3(-1.005), Vec3(1.005)));
+			meshClip(+t.mesh, Aabb(Vec3(-1.002), Vec3(1.002)));
 		}
 
 		{
@@ -489,10 +476,6 @@ namespace
 			imageDilation(+t.albedo, 2);
 			imageDilation(+t.special, 2);
 		}
-
-		//auto tex = t.albedo->copy();
-		//tex->verticalFlip();
-		
 	}
 
 	class Initializer

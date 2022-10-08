@@ -187,10 +187,9 @@ namespace
 	Holder<Texture> dispatchTexture(Holder<Image> &image)
 	{
 		Holder<Texture> t = newTexture();
-		t->importImage(image.get());
-		t->filters(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, 100);
+		t->importImage(+image);
+		t->filters(GL_LINEAR, GL_LINEAR, 100);
 		t->wraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-		t->generateMipmaps();
 		image.clear();
 		return t;
 	}
