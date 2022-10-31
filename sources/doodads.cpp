@@ -6,6 +6,7 @@
 #include <cage-core/hashString.h>
 #include <cage-core/string.h>
 #include <cage-engine/scene.h>
+#include <cage-engine/sceneScreenSpaceEffects.h>
 #include <cage-simple/engine.h>
 
 #include <cstring> // std::strlen
@@ -290,7 +291,7 @@ namespace
 
 		TransformComponent &p = engineEntities()->get(10)->value<TransformComponent>();
 		TransformComponent &cameraTransform = engineEntities()->get(1)->value<TransformComponent>();
-		CameraComponent &cameraProperties = engineEntities()->get(1)->value<CameraComponent>();
+		ScreenSpaceEffectsComponent &cameraProperties = engineEntities()->get(1)->value<ScreenSpaceEffectsComponent>();
 
 		for (Entity *e : engineEntities()->component<MagnetComponent>()->entities())
 		{

@@ -8,6 +8,7 @@
 #include <cage-core/spatialStructure.h>
 #include <cage-core/variableSmoothingBuffer.h>
 #include <cage-engine/scene.h>
+#include <cage-engine/sceneScreenSpaceEffects.h>
 #include <cage-engine/window.h>
 #include <cage-simple/engine.h>
 
@@ -95,9 +96,9 @@ namespace
 		setKeyboardKey(in.key, false);
 	}
 
-	Vec2i centerMouse()
+	Vec2 centerMouse()
 	{
-		Vec2i pt2 = engineWindow()->resolution();
+		Vec2 pt2 = Vec2(engineWindow()->resolution());
 		pt2[0] /= 2;
 		pt2[1] /= 2;
 		engineWindow()->mousePosition(pt2);
@@ -114,7 +115,7 @@ namespace
 	{
 		if (in.buttons == MouseButtonsFlags::Left)
 		{
-			Vec2i c = centerMouse();
+			Vec2 c = centerMouse();
 			mouseMoved[0] += in.position[0] - c[0];
 			mouseMoved[1] += in.position[1] - c[1];
 		}
@@ -159,7 +160,7 @@ namespace
 			c.ambientColor = c.ambientDirectionalColor = Vec3(1);
 			c.ambientIntensity = 0.02;
 			c.ambientDirectionalIntensity = 0.15;
-			c.effects = CameraEffectsFlags::Default | CameraEffectsFlags::DepthOfField | CameraEffectsFlags::EyeAdaptation;
+			e->value<ScreenSpaceEffectsComponent>().effects = ScreenSpaceEffectsFlags::Default | ScreenSpaceEffectsFlags::DepthOfField | ScreenSpaceEffectsFlags::EyeAdaptation;
 		}
 	}
 
