@@ -157,9 +157,8 @@ namespace
 			CameraComponent &c = e->value<CameraComponent>();
 			c.near = 0.05;
 			c.far = 200;
-			c.ambientColor = c.ambientDirectionalColor = Vec3(1);
-			c.ambientIntensity = 0.02;
-			c.ambientDirectionalIntensity = 0.15;
+			c.ambientColor = Vec3(1);
+			c.ambientIntensity = 0.15;
 			e->value<ScreenSpaceEffectsComponent>().effects = ScreenSpaceEffectsFlags::Default | ScreenSpaceEffectsFlags::DepthOfField | ScreenSpaceEffectsFlags::EyeAdaptation;
 		}
 	}
